@@ -1,0 +1,83 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Logs
+*.log
+logs/
+**/logs/
+*.log.*
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+!*.tfvars.example
+.terraform/
+*.terraform.lock.hcl
+
+# AWS Credentials (CRITICAL - Never commit)
+*.csv
+*accessKeys.csv
+**/*accessKeys.csv
+*credentials.csv
+**/*credentials.csv
+*.pem
+*.key
+
+# RSA Keys (CRITICAL - Never commit)
+rsa_key.p8
+*.p8
+rsa_key.pub
+**/rsa_key.pub
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Temporary files
+temp/
+*.tmp
+*.bak
+*.backup
+
+# Test outputs
+test-results/
+coverage/
+.pytest_cache/
+
+# Results folder (keep folder, ignore all contents)
+results/**
+
+# Data folder (keep folder, ignore all contents)
+data/**
+
+# Glue JAR files (download instructions in setup/glue/README.md)
+setup/glue/libs/jars/*.jar
+
+# TPC-DS Performance Test outputs
+tpcds_perf_test/results/**
+tpcds_perf_test/reports/**
+
+# Terraform outputs
+outputs.txt
+

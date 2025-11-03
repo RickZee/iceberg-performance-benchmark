@@ -1,0 +1,188 @@
+# AWS Configuration for Iceberg Performance Testing
+# This configuration file contains AWS-specific settings for Glue catalog and S3
+
+# AWS Region and Credentials
+region: "${AWS_REGION}"
+credentials:
+  access_key_id: "${AWS_ACCESS_KEY_ID}"
+  secret_access_key: "${AWS_SECRET_ACCESS_KEY}"
+  session_token: "${AWS_SESSION_TOKEN}"  # Optional for temporary credentials
+
+# S3 Configuration
+s3:
+  bucket: "${AWS_S3_BUCKET}"
+  prefix: "iceberg-performance-test"
+  region: "${AWS_REGION}"
+  storage_class: "STANDARD"
+  encryption:
+    type: "AES256"
+  lifecycle_rules:
+    - name: "delete_old_test_data"
+      prefix: "temp/"
+      expiration_days: 7
+    - name: "archive_results"
+      prefix: "results/"
+      transition_to_ia_days: 30
+      transition_to_glacier_days: 90
+
+# AWS Glue Catalog Configuration
+glue_catalog:
+  database_name: "${AWS_GLUE_DATABASE}"
+  catalog_id: "${AWS_GLUE_CATALOG_ID}"
+  region: "${AWS_REGION}"
+  table_prefix: "iceberg_"
+  description: "Iceberg performance test tables"
+  
+  # Table properties
+  table_properties:
+    "write.format.default": "parquet"
+    "write.parquet.compression-codec": "snappy"
+    "write.parquet.page-size-bytes": "1048576"
+    "write.parquet.dict-size-bytes": "2097152"
+    "write.parquet.row-group-size-bytes": "134217728"
+    "write.target-file-size-bytes": "134217728"
+    "write.distribution-mode": "hash"
+    "write.object-storage.enabled": "true"
+    "write.object-storage.path": "s3://${AWS_S3_BUCKET}/iceberg-performance-test/"
+
+# External Volume Configuration
+external_volume:
+  name: "iceberg_glue_volume"
+  storage_locations:
+    - name: "s3_storage"
+      url: "s3://${AWS_S3_BUCKET}/iceberg-performance-test/"
+      storage_aws_role_arn: "${AWS_ROLE_ARN}"
+  comment: "External volume for Iceberg performance testing"
+
+# External Stage Configuration
+external_stage:
+  name: "iceberg_external_stage"
+  url: "s3://${AWS_S3_BUCKET}/iceberg-performance-test/"
+  storage_integration: "s3_integration"
+  file_format: "PARQUET"
+  comment: "External stage for Iceberg performance testing"
+
+# Storage Integration Configuration
+storage_integration:
+  name: "s3_integration"
+  storage_provider: "S3"
+  storage_aws_role_arn: "${AWS_ROLE_ARN}"
+  enabled: true
+  comment: "Storage integration for Iceberg performance testing"
+
+# IAM Role Configuration
+iam_role:
+  role_arn: "${AWS_ROLE_ARN}"
+  role_name: "${AWS_ROLE_NAME}"
+  trust_policy:
+    Version: "2012-10-17"
+    Statement:
+      - Effect: "Allow"
+        Principal:
+          Service: "snowflake.amazonaws.com"
+        Action: "sts:AssumeRole"
+  permissions:
+    - "s3:GetObject"
+    - "s3:PutObject"
+    - "s3:DeleteObject"
+    - "s3:ListBucket"
+    - "glue:GetDatabase"
+    - "glue:GetTable"
+    - "glue:CreateTable"
+    - "glue:UpdateTable"
+    - "glue:DeleteTable"
+    - "glue:GetPartitions"
+    - "glue:CreatePartition"
+    - "glue:UpdatePartition"
+    - "glue:DeletePartition"
+
+# CloudWatch Monitoring
+cloudwatch:
+  enable_monitoring: true
+  namespace: "Snowflake/Iceberg/Performance"
+  metrics:
+    - name: "QueryExecutionTime"
+      unit: "Seconds"
+    - name: "DataScanned"
+      unit: "Bytes"
+    - name: "CostPerQuery"
+      unit: "Count"
+    - name: "CacheHitRatio"
+      unit: "Percent"
+  alarms:
+    - name: "HighExecutionTime"
+      metric: "QueryExecutionTime"
+      threshold: 30.0
+      comparison: "GreaterThanThreshold"
+    - name: "HighDataScanned"
+      metric: "DataScanned"
+      threshold: 1000000000  # 1GB
+      comparison: "GreaterThanThreshold"
+
+# Cost Optimization
+cost_optimization:
+  enable_cost_tracking: true
+  cost_threshold_per_query: 0.1  # credits
+  optimization_recommendations:
+    - "Use appropriate warehouse size"
+    - "Enable auto-suspend for warehouses"
+    - "Use result caching when possible"
+    - "Optimize query patterns"
+    - "Use clustering keys effectively"
+
+# Security Configuration
+security:
+  encryption_at_rest: true
+  encryption_in_transit: true
+  access_logging: true
+  versioning: true
+  mfa_delete: false
+  public_access_block:
+    block_public_acls: true
+    block_public_policy: true
+    ignore_public_acls: true
+    restrict_public_buckets: true
+
+# Backup Configuration
+backup:
+  enable_backup: true
+  backup_frequency: "daily"
+  backup_retention_days: 30
+  backup_storage_class: "GLACIER"
+  cross_region_replication: false
+
+# Performance Tuning
+performance_tuning:
+  parquet_compression: "snappy"
+  parquet_page_size: "1MB"
+  parquet_row_group_size: "128MB"
+  target_file_size: "128MB"
+  max_file_size: "1GB"
+  min_file_size: "1MB"
+  
+  # Clustering configuration
+  clustering:
+    enabled: true
+    columns: ["loan_type", "status", "property_state"]
+    max_cluster_keys: 3
+    
+  # Partitioning configuration
+  partitioning:
+    enabled: true
+    strategy: "hash"
+    columns: ["loan_type", "status"]
+    max_partition_keys: 2
+
+# Data Quality Checks
+data_quality:
+  enable_checks: true
+  checks:
+    - name: "row_count_consistency"
+      description: "Check row count consistency across formats"
+      threshold: 0.01  # 1% tolerance
+    - name: "data_type_consistency"
+      description: "Check data type consistency across formats"
+      threshold: 0.0  # No tolerance
+    - name: "null_value_consistency"
+      description: "Check null value consistency across formats"
+      threshold: 0.01  # 1% tolerance

@@ -1,0 +1,61 @@
+# Snowflake Configuration for Performance Testing
+# This configuration file contains connection parameters for all 4 table formats
+
+connection:
+  user: "${SNOWFLAKE_USER}"
+  account: "${SNOWFLAKE_ACCOUNT}"
+  warehouse: "${SNOWFLAKE_WAREHOUSE}"
+  database: "${SNOWFLAKE_DATABASE}"
+  role: "${SNOWFLAKE_ROLE}"
+  
+  # Key Pair Authentication (bypasses MFA)
+  auth_method: "key_pair"
+  private_key_file: "${SNOWFLAKE_PRIVATE_KEY_FILE}"
+  private_key_passphrase: "${SNOWFLAKE_PRIVATE_KEY_PASSPHRASE}"
+  
+  additional_params:
+    autocommit: true
+    session_parameters:
+      QUERY_TAG: "iceberg_performance_test"
+
+# Format-specific configurations
+formats:
+  native:
+    schema: "native_format"
+    warehouse: "${SNOWFLAKE_WAREHOUSE}"
+    description: "Native Snowflake tables"
+    
+  iceberg_sf:
+    schema: "iceberg_sf_format"
+    warehouse: "${SNOWFLAKE_WAREHOUSE}"
+    description: "Iceberg tables with Snowflake catalog"
+    
+  iceberg_glue:
+    schema: "iceberg_glue_format"
+    warehouse: "${SNOWFLAKE_WAREHOUSE}"
+    description: "Iceberg tables with AWS Glue catalog"
+    external_volume: "iceberg_glue_volume"
+    catalog: "AWS_GLUE"
+    
+  external:
+    schema: "external_format"
+    warehouse: "${SNOWFLAKE_WAREHOUSE}"
+    description: "External Iceberg tables"
+    external_stage: "iceberg_external_stage"
+    file_format: "PARQUET"
+
+# Test configuration
+test_config:
+  iterations: 3
+  warmup_iterations: 1
+  delay_between_queries: 1
+  delay_between_formats: 2
+  timeout_seconds: 300
+  
+# Warehouse configuration
+warehouse_config:
+  auto_suspend: 60
+  auto_resume: true
+  scaling_policy: "STANDARD"
+  max_cluster_count: 10
+  min_cluster_count: 1

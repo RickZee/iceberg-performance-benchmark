@@ -1,0 +1,183 @@
+# Test Scenarios Configuration
+# This configuration file defines test scenarios and parameters
+
+# Default test parameters
+default_iterations: 3
+warmup_iterations: 1
+delay_between_queries: 1
+delay_between_formats: 2
+timeout_seconds: 300
+
+# Test suites configuration
+test_suites:
+  basic_queries:
+    path: "queries/basic"
+    iterations: 3
+    description: "Basic query performance tests (point lookups, ranges, filters)"
+    expected_duration_minutes: 30
+    
+  aggregation_queries:
+    path: "queries/aggregations"
+    iterations: 3
+    description: "Aggregation query performance tests (GROUP BY, window functions, percentiles)"
+    expected_duration_minutes: 45
+    
+  join_queries:
+    path: "queries/joins"
+    iterations: 3
+    description: "Join query performance tests (2-way to 10+ table joins)"
+    expected_duration_minutes: 60
+    
+  analytics_queries:
+    path: "queries/analytics"
+    iterations: 3
+    description: "Analytics query performance tests (time-series, cohort, geographical, risk analysis)"
+    expected_duration_minutes: 90
+    
+  complex_queries:
+    path: "queries/complex"
+    iterations: 3
+    description: "Complex query performance tests (CTEs, subqueries, set operations)"
+    expected_duration_minutes: 60
+
+# Comprehensive test scenarios
+comprehensive_tests:
+  full_suite:
+    name: "Full Performance Test Suite"
+    description: "Complete performance testing across all query types"
+    suites:
+      - "basic_queries"
+      - "aggregation_queries"
+      - "join_queries"
+      - "analytics_queries"
+      - "complex_queries"
+    iterations: 3
+    expected_duration_hours: 4
+    
+  quick_suite:
+    name: "Quick Performance Test Suite"
+    description: "Fast performance testing for development"
+    suites:
+      - "basic_queries"
+      - "aggregation_queries"
+    iterations: 1
+    expected_duration_minutes: 30
+    
+  stress_test:
+    name: "Stress Test Suite"
+    description: "High-load performance testing"
+    suites:
+      - "basic_queries"
+      - "aggregation_queries"
+      - "join_queries"
+    iterations: 10
+    expected_duration_hours: 6
+
+# Data volume configurations
+data_volumes:
+  small:
+    description: "Small dataset for quick testing"
+    loan_count: 100000
+    expected_duration_minutes: 15
+    
+  medium:
+    description: "Medium dataset for realistic testing"
+    loan_count: 1000000
+    expected_duration_minutes: 60
+    
+  large:
+    description: "Large dataset for production-scale testing"
+    loan_count: 10000000
+    expected_duration_hours: 4
+    
+  xlarge:
+    description: "Extra large dataset for stress testing"
+    loan_count: 100000000
+    expected_duration_hours: 12
+
+# Performance thresholds
+performance_thresholds:
+  execution_time:
+    excellent: 1.0  # seconds
+    good: 5.0
+    acceptable: 10.0
+    poor: 30.0
+    
+  memory_usage:
+    excellent: 100  # MB
+    good: 500
+    acceptable: 1000
+    poor: 5000
+    
+  cost_per_query:
+    excellent: 0.01  # credits
+    good: 0.05
+    acceptable: 0.1
+    poor: 0.5
+
+# Test data generation
+data_generation:
+  seed: 12345
+  date_range:
+    start: "2020-01-01"
+    end: "2024-12-31"
+  geographic_distribution:
+    - state: "CA"
+      weight: 0.15
+    - state: "NY"
+      weight: 0.12
+    - state: "TX"
+      weight: 0.10
+    - state: "FL"
+      weight: 0.08
+    - state: "IL"
+      weight: 0.06
+    - state: "PA"
+      weight: 0.05
+    - state: "OH"
+      weight: 0.05
+    - state: "GA"
+      weight: 0.04
+    - state: "NC"
+      weight: 0.04
+    - state: "MI"
+      weight: 0.04
+    - state: "OTHER"
+      weight: 0.27
+  loan_types:
+    - type: "conventional"
+      weight: 0.60
+    - type: "FHA"
+      weight: 0.25
+    - type: "VA"
+      weight: 0.10
+    - type: "USDA"
+      weight: 0.05
+  status_distribution:
+    - status: "active"
+      weight: 0.85
+    - status: "paid_off"
+      weight: 0.10
+    - status: "delinquent"
+      weight: 0.03
+    - status: "defaulted"
+      weight: 0.02
+
+# Monitoring and alerting
+monitoring:
+  enable_monitoring: true
+  metrics_collection_interval: 30  # seconds
+  alert_thresholds:
+    execution_time_multiplier: 3.0
+    memory_usage_multiplier: 2.0
+    cost_multiplier: 2.0
+  notifications:
+    email: "${ALERT_EMAIL}"
+    slack_webhook: "${SLACK_WEBHOOK}"
+
+# Output configuration
+output:
+  results_directory: "results"
+  timestamp_format: "%Y%m%d_%H%M%S"
+  compression: true
+  retention_days: 30

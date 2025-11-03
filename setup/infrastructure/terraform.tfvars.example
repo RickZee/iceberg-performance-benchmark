@@ -1,0 +1,64 @@
+# Example Terraform Variables File
+# Copy this file to terraform.tfvars and update with your values
+
+# AWS Configuration
+aws_region = "us-east-1"
+
+# Project Configuration
+project_name = "iceberg-performance-test"
+environment  = "dev"
+
+# S3 Configuration
+# Leave empty to auto-generate bucket name
+s3_bucket_name = ""
+# s3_bucket_name = "my-custom-iceberg-bucket"
+
+# AWS Glue Configuration
+glue_database_name = "iceberg_performance_test"
+glue_database_description = "AWS Glue database for Iceberg performance testing tables"
+
+# Snowflake Integration
+# Your Snowflake account identifier (e.g., "abc12345" for account abc12345.snowflakecomputing.com)
+snowflake_account = "your-snowflake-account-id"
+
+# Optional: External ID for additional security
+# snowflake_external_id = "your-external-id"
+
+# S3 Configuration
+s3_prefix = "iceberg-performance-test"
+
+# Lifecycle and Retention
+enable_versioning = true
+enable_lifecycle  = true
+temp_data_retention_days = 7
+results_retention_days    = 30
+
+# IAM Configuration
+iam_role_name   = "snowflake-iceberg-role"
+iam_policy_name = "snowflake-iceberg-policy"
+
+# Optional: KMS Key for encryption
+# kms_key_id = "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012"
+
+# Additional Tags
+tags = {
+  Owner       = "your-name"
+  Department  = "engineering"
+  CostCenter  = "data-platform"
+  Project     = "iceberg-performance-testing"
+  Environment = "dev"
+}
+
+# Example for Production Environment
+# environment = "prod"
+# s3_bucket_name = "company-iceberg-prod-data"
+# temp_data_retention_days = 1
+# results_retention_days = 90
+# tags = {
+#   Owner       = "data-engineering-team"
+#   Department  = "engineering"
+#   CostCenter  = "data-platform"
+#   Project     = "iceberg-performance-testing"
+#   Environment = "prod"
+#   Compliance  = "required"
+# }

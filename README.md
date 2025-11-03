@@ -1,0 +1,703 @@
+# Snowflake Iceberg Performance Testing Suite
+
+A comprehensive performance testing framework for comparing 4 different Snowflake table formats using the TPC-DS benchmark:
+
+1. **Native Snowflake Tables** - Standard Snowflake managed tables
+2. **Iceberg Snowflake-Managed** - Iceberg format with Snowflake catalog
+3. **Iceberg AWS Glue-Managed** - Iceberg format with external AWS Glue catalog
+4. **External Iceberg Tables** - External tables pointing to parquet data
+
+## 🚀 Features
+
+- **TPC-DS Benchmark Testing**: 99 standard TPC-DS queries across all formats
+- **Automated Test Execution**: Python framework with comprehensive metrics collection
+- **Multiple Table Formats**: Native, Iceberg (Snowflake), Iceberg (Glue), External
+- **Performance Analytics**: Detailed metrics, statistical analysis, and recommendations
+- **Scalable Testing**: Support for multiple TPC-DS scale factors (0.01, 0.1, 1.0, etc.)
+- **Automated Reporting**: HTML, JSON, CSV, and PDF report generation
+- **Complete Setup Workflow**: Automated infrastructure and data loading
+
+## 📁 Project Structure
+
+```text
+iceberg-performance-benchmark/
+├── setup/                    # All setup functionality
+│   ├── infrastructure/       # AWS Terraform infrastructure
+│   │   ├── main.tf           # Main Terraform configuration
+│   │   ├── s3.tf             # S3 bucket configuration
+│   │   ├── glue.tf           # Glue catalog configuration
+│   │   ├── iam.tf            # IAM roles and policies
+│   │   ├── variables.tf      # Terraform variables
+│   │   ├── outputs.tf        # Terraform outputs
+│   │   ├── terraform.tfvars.example  # Example variables file
+│   │   ├── deploy_glue_iceberg.sh    # Deployment script
+│   │   └── README.md         # Infrastructure documentation
+│   ├── schemas/              # SQL schema creation scripts
+│   │   ├── create_native.sql
+│   │   ├── create_iceberg_sf.sql
+│   │   ├── create_iceberg_glue.sql
+│   │   ├── create_external.sql
+│   │   └── create_tpcds_objects.sql  # Master setup script
+│   ├── glue/                 # AWS Glue table setup
+│   │   ├── scripts/          # Setup scripts
+│   │   │   ├── create_glue_tables.py
+│   │   │   ├── load_tpcds_data.py
+│   │   │   ├── create_snowflake_glue_tables.py
+│   │   │   ├── verify_glue_tables.py
+│   │   │   └── cleanup_glue_tables.py
+│   │   ├── config/           # Glue configuration files
+│   │   │   ├── spark_config.yaml
+│   │   │   ├── glue_catalog_config.yaml
+│   │   │   └── tpcds_table_schemas.yaml
+│   │   ├── libs/             # JAR files and dependencies
+│   │   │   └── jars/         # Iceberg/Spark runtime JARs
+│   │   ├── logs/             # Glue setup logs
+│   │   ├── requirements.txt  # Glue-specific dependencies
+│   │   └── README.md         # Glue setup documentation
+│   └── data/                 # Data generation and loading
+│       ├── main.py           # Main data loading application
+│       ├── tpcds_data_loader.py  # Data loading logic
+│       ├── tpcds_generator.py    # TPC-DS data generation
+│       ├── mock_tpcds_generator.py  # Mock generator for testing
+│       ├── run_tpcds_loader.py    # Runner script
+│       ├── test_tpcds_loader.py   # Test utilities
+│       ├── clear_tpcds_data.py    # Data cleanup utility
+│       ├── query_tpcds_tables.py  # Table query utility
+│       └── README.md         # Data loader documentation
+├── benchmark/                # Performance testing framework
+│   ├── src/                  # Source code
+│   │   ├── main.py           # Main application entry point
+│   │   ├── query_engine.py   # Query execution engine
+│   │   ├── metrics_collector.py # Performance metrics collection
+│   │   ├── analytics_engine.py  # Advanced analytics
+│   │   └── report_generator.py  # Report generation
+│   ├── queries/              # TPC-DS query files (99 queries per format)
+│   │   ├── native/           # Queries for native format
+│   │   ├── iceberg_sf/       # Queries for Iceberg SF format
+│   │   ├── iceberg_glue/     # Queries for Iceberg Glue format
+│   │   └── external/         # Queries for external format
+│   ├── config/               # Test configuration files
+│   │   ├── perf_test_config.yaml
+│   │   ├── test_scenarios.yaml
+│   │   ├── reporting_config.yaml
+│   │   └── smoke_test*.yaml
+│   ├── logs/                 # Benchmark execution logs
+│   ├── fix_limit_clauses.py  # Utility script for query fixes
+│   ├── quick_test_fix.py     # Quick test utility
+│   └── README.md             # Performance testing documentation
+├── config/                   # Global shared configuration files
+│   ├── snowflake_config.yaml
+│   ├── aws_config.yaml
+│   └── tpcds_config.yaml
+├── lib/                      # Shared utility modules
+│   ├── env.py                # Environment variable loader
+│   └── output.py             # Output manager
+├── data/                     # TPC-DS generated data files (gitignored)
+├── results/                  # Test results and reports (gitignored)
+├── logs/                     # Log files (gitignored)
+├── load_env_vars.sh          # Environment variable loader script
+├── requirements.txt
+├── env.example
+└── README.md                 # This file
+```
+
+## 🛠️ Prerequisites
+
+### Software Requirements
+
+- Python 3.8+
+- Snowflake account with appropriate permissions
+- AWS account (for Glue catalog and S3)
+- Git
+- Terraform (for AWS infrastructure)
+- Spark (for Glue table creation, if using setup/glue)
+
+### Python Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+Key dependencies:
+
+- `snowflake-connector-python`
+- `pandas`
+- `numpy`
+- `matplotlib`
+- `seaborn`
+- `pyyaml`
+- `pyarrow` (for Parquet file handling)
+- `boto3` (for AWS integration)
+- `scipy` (for statistical analysis)
+
+### Snowflake Requirements
+
+- Warehouse with appropriate size (X-Small to X-Large)
+- Database and schema creation permissions
+- External volume creation permissions (for Iceberg)
+- Storage integration permissions (for S3)
+- ACCOUNTADMIN role (for catalog integrations)
+
+### AWS Requirements
+
+- S3 bucket for Iceberg data storage
+- AWS Glue catalog access
+- IAM role with appropriate permissions
+- Storage integration in Snowflake
+
+## ⚙️ Setup Instructions
+
+### 1. Clone the Repository
+
+```bash
+git clone <repository-url>
+cd iceberg-performance-benchmark
+```
+
+### 2. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Configure Environment Variables
+
+This project uses environment variables for configuration to keep sensitive information and deployment-specific settings out of the codebase.
+
+#### Quick Setup
+
+1. **Copy the example file:**
+
+   ```bash
+   cp env.example .env
+   ```
+
+2. **Edit `.env` with your values:**
+
+   ```bash
+   # Edit with your actual credentials and configuration
+   nano .env
+   # or
+   vim .env
+   ```
+
+3. **Load environment variables:**
+
+   ```bash
+   # Method 1: Source .env file (recommended)
+   set -a  # automatically export all variables
+   source .env
+   set +a
+   
+   # Method 2: Export manually
+   export $(cat .env | xargs)
+   
+   # Method 3: Use python-dotenv in your scripts
+   # pip install python-dotenv
+   # Then add to scripts: from dotenv import load_dotenv; load_dotenv()
+   ```
+
+#### Environment Variables Reference
+
+**Snowflake Configuration:**
+
+| Variable | Description | Example | Required |
+|----------|-------------|---------|----------|
+| `SNOWFLAKE_USER` | Snowflake username | `your_username` | ✅ Yes |
+| `SNOWFLAKE_ACCOUNT` | Snowflake account identifier | `xy12345.us-east-1` | ✅ Yes |
+| `SNOWFLAKE_WAREHOUSE` | Warehouse name | `TPCDS_TEST_WH` | ✅ Yes |
+| `SNOWFLAKE_DATABASE` | Database name | `tpcds_performance_test` | No (default: `tpcds_performance_test`) |
+| `SNOWFLAKE_ROLE` | Role name | `ACCOUNTADMIN` | No (default: `ACCOUNTADMIN`) |
+| `SNOWFLAKE_PRIVATE_KEY_FILE` | Path to RSA private key file | `/path/to/rsa_key.p8` | No* |
+| `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE` | Passphrase for private key | (empty if no passphrase) | No |
+
+**Snowflake Schema Names (all optional with defaults):**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SNOWFLAKE_SCHEMA_NATIVE` | `tpcds_native_format` | Native Snowflake table schema |
+| `SNOWFLAKE_SCHEMA_ICEBERG_SF` | `tpcds_iceberg_sf_format` | Iceberg Snowflake-managed schema |
+| `SNOWFLAKE_SCHEMA_ICEBERG_GLUE` | `tpcds_iceberg_glue_format` | Iceberg Glue-managed schema |
+| `SNOWFLAKE_SCHEMA_EXTERNAL` | `tpcds_external_format` | External table schema |
+
+**AWS Configuration:**
+
+| Variable | Description | Example | Required |
+|----------|-------------|---------|----------|
+| `AWS_REGION` | AWS region | `us-east-1` | No (default: `us-east-1`) |
+| `AWS_ACCOUNT_ID` | AWS account ID | `123456789012` | ✅ Yes |
+| `AWS_S3_BUCKET` | S3 bucket name | `my-iceberg-bucket` | ✅ Yes |
+| `AWS_S3_ICEBERG_PREFIX` | S3 prefix for Iceberg data | `iceberg-data/prefix` | No |
+| `AWS_S3_ICEBERG_GLUE_PATH` | Full S3 path for Glue Iceberg tables | `s3://bucket/prefix/iceberg_glue_format/` | No |
+| `AWS_GLUE_DATABASE` | Glue database name | `iceberg_performance_test` | No |
+| `AWS_GLUE_CATALOG_ID` | Glue catalog ID | `123456789012` | No |
+| `AWS_GLUE_CATALOG_NAME` | Glue catalog name | `glue_catalog` | No |
+| `AWS_ROLE_NAME` | IAM role name | `snowflake-iceberg-role` | No |
+| `AWS_ROLE_ARN` | Full IAM role ARN | `arn:aws:iam::123456789012:role/snowflake-iceberg-role` | No |
+
+**Project Paths (all optional with defaults):**
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `PROJECT_ROOT` | Absolute path to project root | `/path/to/iceberg-performance-benchmark` |
+| `TPCDS_DATA_DIR` | Path to TPC-DS data directory | `data/tpcds_data_sf0.1` |
+
+*Private key file is required for key pair authentication. The script will search in:
+
+1. Path specified in `SNOWFLAKE_PRIVATE_KEY_FILE`
+2. `project_root/setup/data/rsa_key.p8`
+3. `project_root/benchmark/rsa_key.p8`
+4. `~/.ssh/rsa_key.p8`
+
+#### Using Environment Variables in Scripts
+
+Scripts use the `lib.env` module to load configuration:
+
+```python
+from lib.env import get_snowflake_config, get_aws_config, get_snowflake_schemas
+
+# Load Snowflake configuration
+snowflake_config = get_snowflake_config()
+conn = snowflake.connector.connect(**snowflake_config)
+
+# Load AWS configuration
+aws_config = get_aws_config()
+s3_path = aws_config['s3_iceberg_glue_path']
+
+# Load schema names
+schemas = get_snowflake_schemas()
+schema_name = schemas['iceberg_glue']
+```
+
+**Note:** Configuration files in `setup/glue/config/` also support environment variable substitution using `${VAR_NAME}` syntax.
+
+### 4. Authentication Setup
+
+#### Option A: Password Authentication
+
+Set the `SNOWFLAKE_PASSWORD` environment variable as shown above.
+
+#### Option B: Key Pair Authentication (Recommended)
+
+Key Pair Authentication uses a private/public key pair instead of passwords:
+
+- ✅ Bypasses MFA requirements
+- ✅ More secure than passwords
+- ✅ No need for TOTP codes
+
+**Setup Steps:**
+
+1. **Generate Key Pair**
+
+   ```bash
+   # Generate private key
+   openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out rsa_key.p8 -nocrypt
+
+   # Generate public key
+   openssl rsa -in rsa_key.p8 -pubout -out rsa_key.pub
+   ```
+
+2. **Configure Snowflake**
+
+   - Log into Snowflake Web UI
+   - Go to your user profile (click your username → Profile)
+   - Navigate to "Key Pairs" tab
+   - Click "Add Key Pair"
+   - Upload the public key (`rsa_key.pub`)
+   - Copy the public key fingerprint
+
+3. **Update Environment Variables**
+
+```bash
+export SNOWFLAKE_PRIVATE_KEY_FILE="/full/path/to/rsa_key.p8"
+export SNOWFLAKE_PRIVATE_KEY_PASSPHRASE=""  # Leave empty if no passphrase
+```
+
+**Security Notes:**
+
+- Keep your private keys secure and never commit them to git (already in `.gitignore`)
+- Never commit `.env` files - they contain sensitive credentials
+- Use `env.example` as a template - this file can be safely committed
+- Rotate credentials regularly
+- Use least privilege principles
+
+### 5. AWS Infrastructure Setup
+
+#### Option A: Automated Setup (Recommended)
+
+```bash
+cd setup/infrastructure/
+terraform init
+terraform plan
+terraform apply
+```
+
+This will create:
+
+- S3 bucket for data storage
+- AWS Glue database
+- IAM roles and policies
+- All necessary AWS resources
+
+See [`setup/infrastructure/README.md`](setup/infrastructure/README.md) for detailed AWS infrastructure setup instructions.
+
+#### ⚠️ Important: Cross-Account Configuration
+
+**Snowflake runs on its own AWS backend accounts**, requiring cross-account access configuration:
+
+1. **After creating Snowflake integrations** (external volume and catalog integration), retrieve IAM details:
+   
+   **Automated (recommended):**
+   ```bash
+   python3 setup/infrastructure/get_snowflake_iam_details.py
+   ```
+   
+   **Manual SQL:**
+   ```sql
+   DESC EXTERNAL VOLUME iceberg_glue_volume;
+   DESC CATALOG INTEGRATION aws_glue_catalog;
+   ```
+
+2. **Update the IAM role trust policy** with Snowflake's IAM user ARN and external ID:
+   
+   **Automated (recommended):**
+   ```bash
+   python3 setup/infrastructure/update_iam_trust_policy.py
+   ```
+   
+   **Manual:** Update the trust policy in AWS IAM Console (see detailed instructions below)
+
+3. **For detailed cross-account setup instructions**, see:
+   - [`setup/infrastructure/README.md`](setup/infrastructure/README.md#cross-account-configuration) (includes comprehensive cross-account setup)
+   - [`docs/glue-integration-journey.md`](docs/glue-integration-journey.md) (troubleshooting guide)
+
+### 6. Create Database Schema
+
+Execute the master setup script to create all TPC-DS tables in all formats:
+
+```sql
+-- Execute in Snowflake
+@setup/schemas/create_tpcds_objects.sql
+```
+
+Or run individual setup scripts:
+
+```sql
+-- Native tables
+@setup/schemas/create_native.sql
+
+-- Iceberg Snowflake-managed tables
+@setup/schemas/create_iceberg_sf.sql
+
+-- Iceberg Glue-managed tables (requires AWS setup first)
+@setup/schemas/create_iceberg_glue.sql
+
+-- External tables
+@setup/schemas/create_external.sql
+```
+
+This will create:
+
+- All 4 table formats (Native, Iceberg SF, Iceberg Glue, External)
+- 24 TPC-DS tables in each format
+- All necessary AWS integrations and external volumes
+
+### 7. Set Up Glue-Managed Tables (For Iceberg Glue Format)
+
+If you're testing the Iceberg Glue format, you need to set up Glue-managed tables:
+
+```bash
+cd setup/glue/
+
+# Install additional dependencies
+pip install -r requirements.txt
+
+# Step 1: Create Glue tables (using Spark)
+python scripts/create_glue_tables.py
+
+# Step 2: Load TPC-DS data
+python scripts/load_tpcds_data.py
+
+# Step 3: Create Snowflake references
+python scripts/create_snowflake_glue_tables.py
+
+# Step 4: Verify setup
+python scripts/verify_glue_tables.py
+```
+
+See [`setup/glue/README.md`](setup/glue/README.md) for detailed instructions.
+
+### 8. Load Test Data
+
+#### Using TPC-DS Data Loader
+
+```bash
+# Load environment variables (from project root)
+source load_env_vars.sh
+
+# Run data loader
+python setup/data/main.py
+```
+
+Or use the runner script:
+
+```bash
+python setup/data/run_tpcds_loader.py
+```
+
+The data loader will:
+
+- Generate TPC-DS data (if not already present)
+- Convert to Parquet format
+- Load data into all configured table formats
+
+See [`setup/data/README.md`](setup/data/README.md) for detailed instructions.
+
+## 🧪 Running Performance Tests
+
+### Quick Start
+
+#### Quick Test (Test Mode - Limited Queries)
+
+```bash
+python benchmark/src/main.py --test-mode
+```
+
+#### Standard Test (All Formats, All Queries)
+
+```bash
+python benchmark/src/main.py
+```
+
+#### Test Specific Formats
+
+```bash
+python benchmark/src/main.py --formats native iceberg_sf
+```
+
+#### Test Query Range
+
+```bash
+python benchmark/src/main.py --query-range 1 10
+```
+
+### Configuration
+
+Edit `benchmark/config/perf_test_config.yaml` to customize:
+
+- Test modes (quick, standard, comprehensive, stress)
+- Performance thresholds
+- Reporting options
+- Query execution settings
+
+### Test Output
+
+Results are saved to:
+
+- `results/` - JSON and CSV results
+- `results/reports/` - HTML reports with charts
+
+See [`benchmark/README.md`](benchmark/README.md) for detailed testing documentation.
+
+## 📊 Understanding Results
+
+### Performance Metrics
+
+- **Execution Time**: Query execution duration
+- **Data Scanned**: Bytes of data scanned
+- **Rows Produced**: Number of rows returned
+- **Cache Hit Ratio**: Percentage of data served from cache
+- **Credits Used**: Snowflake compute credits consumed
+- **Memory Usage**: Peak memory consumption
+
+### Format Comparison
+
+The framework compares performance across 4 table formats:
+
+- **Native Snowflake**: Baseline performance, fully managed
+- **Iceberg (Snowflake)**: ACID transactions, time travel, versioning
+- **Iceberg (Glue)**: Cross-platform compatibility, AWS ecosystem integration
+- **External Iceberg**: Cost-effective, direct S3 access
+
+### Reports
+
+The framework generates comprehensive reports:
+
+- **HTML Reports**: Interactive charts and visualizations
+- **JSON Reports**: Machine-readable results for further analysis
+- **CSV Exports**: Spreadsheet-compatible data
+- **Statistical Analysis**: ANOVA, correlation analysis, trend detection
+
+## 🗂️ TPC-DS Schema
+
+This project uses the TPC-DS benchmark schema with 24 tables:
+
+### Dimension Tables (17)
+
+- call_center, catalog_page, customer, customer_address
+- customer_demographics, date_dim, household_demographics
+- income_band, item, promotion, reason, ship_mode
+- store, time_dim, warehouse, web_page, web_site
+
+### Fact Tables (7)
+
+- catalog_returns, catalog_sales, inventory
+- store_returns, store_sales, web_returns, web_sales
+
+All tables are created in 4 formats:
+
+- Native Snowflake tables
+- Iceberg Snowflake-managed tables
+- Iceberg AWS Glue-managed tables
+- External tables
+
+See [`setup/schemas/`](setup/schemas/) for DDL scripts.
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+#### 1. Connection Errors
+
+```bash
+# Test Snowflake connection
+python -c "from benchmark.src.query_engine import QueryEngine; q = QueryEngine(); print('Connected:', q.test_connection())"
+```
+
+#### 2. Permission Errors
+
+- Ensure proper Snowflake role permissions (ACCOUNTADMIN recommended for setup)
+- Check AWS IAM role permissions
+- Verify S3 bucket access and policies
+
+#### 3. Glue Table Issues
+
+- Verify AWS Glue catalog is accessible
+- Ensure tables are created in Glue before creating Snowflake references
+- Check S3 paths and permissions
+
+#### 4. Data Loading Issues
+
+- Verify TPC-DS data files exist in `data/` directory
+- Check Parquet file format compatibility
+- Ensure sufficient warehouse size for large datasets
+
+#### 5. Test Execution Issues
+
+- Check query syntax for your Snowflake version
+- Verify all tables exist and have data
+- Review logs in `benchmark/logs/`
+
+#### 6. Environment Variable Issues
+
+**Scripts can't find environment variables:**
+
+1. Make sure variables are exported: `export VAR_NAME=value`
+2. Check if `.env` file is being loaded (use `set -a; source .env; set +a`)
+3. Verify variable names match exactly (case-sensitive)
+4. Ensure required variables are set (see Environment Variables Reference above)
+
+**Private key file not found:**
+
+- The script searches in multiple default locations (see Environment Variables Reference)
+- Set `SNOWFLAKE_PRIVATE_KEY_FILE` explicitly if your key is in a different location
+
+**Configuration conflicts:**
+
+- If you have both environment variables and YAML config files, environment variables take precedence
+
+## 🧹 Cleanup
+
+### AWS Resources Cleanup
+
+```bash
+cd setup/infrastructure/
+terraform destroy
+```
+
+Or manually clean up Glue tables:
+
+```bash
+cd setup/glue/
+python scripts/cleanup_glue_tables.py
+```
+
+### Snowflake Cleanup
+
+```sql
+-- Drop database and all schemas
+DROP DATABASE IF EXISTS tpcds_performance_test CASCADE;
+
+-- Or drop individual schemas
+DROP SCHEMA IF EXISTS TPCDS_NATIVE_FORMAT CASCADE;
+DROP SCHEMA IF EXISTS TPCDS_ICEBERG_SF_FORMAT CASCADE;
+DROP SCHEMA IF EXISTS TPCDS_ICEBERG_GLUE_FORMAT CASCADE;
+DROP SCHEMA IF EXISTS TPCDS_EXTERNAL_FORMAT CASCADE;
+```
+
+## 📚 Additional Documentation
+
+### Component-Specific Documentation
+
+- **[AWS Infrastructure Setup](setup/infrastructure/README.md)** - Detailed AWS setup with Terraform
+- **[TPC-DS Performance Testing](benchmark/README.md)** - Complete testing framework documentation
+- **[TPC-DS Data Loader](setup/data/README.md)** - Data generation and loading guide
+- **[Glue Table Setup](setup/glue/README.md)** - AWS Glue-managed table workflow
+- **[Snowflake Schema](setup/schemas/)** - Database schema and DDL files
+
+### Quick Reference
+
+- **Main Testing**: Use `benchmark/src/main.py` for performance tests
+- **Data Loading**: Use `setup/data/` for generating and loading data
+- **Glue Setup**: Use `setup/glue/scripts/` for Glue-managed tables
+- **Schema Setup**: Use `setup/schemas/create_tpcds_objects.sql` for initial setup
+- **AWS Infrastructure**: Use `setup/infrastructure/` for infrastructure provisioning
+
+## 🔧 Configuration
+
+### Main Configuration Files
+
+- `config/snowflake_config.yaml` - Snowflake connection settings (shared)
+- `config/aws_config.yaml` - AWS service configuration (shared)
+- `config/tpcds_config.yaml` - TPC-DS data generation settings (shared)
+- `benchmark/config/perf_test_config.yaml` - Performance test configuration
+- `benchmark/config/test_scenarios.yaml` - Test scenario definitions
+- `benchmark/config/reporting_config.yaml` - Report generation settings
+- `setup/glue/config/glue_catalog_config.yaml` - Glue catalog settings
+
+## 📝 Project Components
+
+### Core Components
+
+1. **Performance Testing Framework** (`benchmark/`)
+   - Automated query execution
+   - Metrics collection and analysis
+   - Report generation
+
+2. **Data Management** (`setup/data/`)
+   - TPC-DS data generation
+   - Multi-format data loading
+   - Data validation
+
+3. **Infrastructure** (`setup/infrastructure/`)
+   - Terraform configurations
+   - S3, Glue, IAM setup
+   - Automated provisioning
+
+4. **Glue Workflow** (`setup/glue/`)
+   - Spark-based table creation
+   - Data loading pipeline
+   - Verification and cleanup
+
+## 🤝 Contributing
+
+When contributing to this project:
+
+1. Ensure all sensitive files are in `.gitignore` (credentials, keys, state files)
+2. Follow the existing project structure
+3. Update relevant README files
+4. Test your changes across all table formats
+
+## 📄 License
+
+[Add your license information here]

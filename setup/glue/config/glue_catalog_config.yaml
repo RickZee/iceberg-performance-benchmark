@@ -1,0 +1,35 @@
+# Glue Catalog Configuration
+glue:
+  catalog_name: "${AWS_GLUE_CATALOG_NAME}"
+  database_name: "${AWS_GLUE_DATABASE}"
+  region: "${AWS_REGION}"
+  
+  # Table naming
+  table_prefix: ""
+  table_suffix: ""
+  
+  # Iceberg properties
+  table_properties:
+    "write.format.default": "parquet"
+    "write.parquet.compression-codec": "snappy"
+    "write.parquet.page-size-bytes": "1048576"
+    "write.parquet.dict-size-bytes": "2097152"
+    "write.parquet.row-group-size-bytes": "134217728"
+    "write.target-file-size-bytes": "134217728"
+    "write.distribution-mode": "hash"
+    "write.object-storage.enabled": "true"
+    "write.object-storage.path": "${AWS_S3_ICEBERG_GLUE_PATH}"
+
+# S3 Configuration
+s3:
+  bucket: "${AWS_S3_BUCKET}"
+  prefix: "${AWS_S3_ICEBERG_PREFIX}/iceberg_glue_format"
+  region: "${AWS_REGION}"
+  
+# AWS Configuration
+aws:
+  region: "${AWS_REGION}"
+  credentials:
+    # Will be loaded from environment or AWS credentials file
+    access_key_id: "${AWS_ACCESS_KEY_ID}"
+    secret_access_key: "${AWS_SECRET_ACCESS_KEY}"

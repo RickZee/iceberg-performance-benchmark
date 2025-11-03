@@ -1,0 +1,233 @@
+# Reporting Configuration
+# This configuration file defines reporting settings and output formats
+
+# Output Configuration
+output:
+  directory: "results"
+  timestamp_format: "%Y%m%d_%H%M%S"
+  compression: true
+  retention_days: 30
+  
+# Report Formats
+report_formats:
+  - "json"
+  - "csv"
+  - "html"
+  - "pdf"
+
+# Report Sections
+report_sections:
+  executive_summary: true
+  performance_comparison: true
+  format_analysis: true
+  query_analysis: true
+  cost_analysis: true
+  recommendations: true
+  detailed_metrics: true
+  charts_and_graphs: true
+
+# Chart Configuration
+charts:
+  enable_charts: true
+  chart_formats: ["png", "svg", "pdf"]
+  chart_theme: "whitegrid"
+  figure_size: [12, 8]
+  dpi: 300
+  
+  # Chart types
+  execution_time_chart: true
+  performance_comparison_chart: true
+  cost_analysis_chart: true
+  format_ranking_chart: true
+  query_performance_chart: true
+  memory_usage_chart: true
+  cache_hit_ratio_chart: true
+
+# HTML Report Configuration
+html_report:
+  template: "default"
+  include_css: true
+  include_javascript: true
+  responsive: true
+  dark_mode: false
+  
+  # Styling
+  primary_color: "#1f77b4"
+  secondary_color: "#ff7f0e"
+  accent_color: "#2ca02c"
+  background_color: "#ffffff"
+  text_color: "#333333"
+  
+  # Layout
+  sidebar: true
+  table_of_contents: true
+  navigation: true
+  footer: true
+
+# PDF Report Configuration
+pdf_report:
+  page_size: "A4"
+  orientation: "portrait"
+  margins:
+    top: 1.0
+    bottom: 1.0
+    left: 1.0
+    right: 1.0
+  header: true
+  footer: true
+  page_numbers: true
+
+# CSV Export Configuration
+csv_export:
+  include_headers: true
+  delimiter: ","
+  encoding: "utf-8"
+  quote_char: '"'
+  escape_char: "\\"
+  
+  # CSV files to generate
+  files:
+    - name: "execution_metrics"
+      description: "Detailed execution metrics"
+    - name: "performance_summary"
+      description: "Performance summary by format"
+    - name: "query_results"
+      description: "Query-specific results"
+    - name: "cost_analysis"
+      description: "Cost analysis results"
+
+# JSON Export Configuration
+json_export:
+  pretty_print: true
+  include_metadata: true
+  include_raw_results: false
+  
+  # JSON files to generate
+  files:
+    - name: "complete_results"
+      description: "Complete test results"
+    - name: "performance_metrics"
+      description: "Performance metrics only"
+    - name: "format_comparison"
+      description: "Format comparison data"
+
+# Performance Thresholds
+performance_thresholds:
+  execution_time:
+    excellent: 1.0  # seconds
+    good: 5.0
+    acceptable: 10.0
+    poor: 30.0
+    
+  memory_usage:
+    excellent: 100  # MB
+    good: 500
+    acceptable: 1000
+    poor: 5000
+    
+  cost_per_query:
+    excellent: 0.01  # credits
+    good: 0.05
+    acceptable: 0.1
+    poor: 0.5
+
+# Report Templates
+templates:
+  executive_summary:
+    title: "Executive Summary"
+    sections:
+      - "test_overview"
+      - "key_findings"
+      - "performance_ranking"
+      - "recommendations"
+      
+  detailed_analysis:
+    title: "Detailed Performance Analysis"
+    sections:
+      - "methodology"
+      - "test_results"
+      - "format_comparison"
+      - "query_analysis"
+      - "cost_analysis"
+      - "recommendations"
+
+# Notification Configuration
+notifications:
+  enable_notifications: false
+  email:
+    smtp_server: "${SMTP_SERVER}"
+    smtp_port: 587
+    username: "${SMTP_USERNAME}"
+    password: "${SMTP_PASSWORD}"
+    from_email: "${FROM_EMAIL}"
+    to_emails: ["${TO_EMAIL}"]
+    subject: "Snowflake Iceberg Performance Test Report"
+    
+  slack:
+    webhook_url: "${SLACK_WEBHOOK_URL}"
+    channel: "#performance-testing"
+    username: "Performance Bot"
+    
+  teams:
+    webhook_url: "${TEAMS_WEBHOOK_URL}"
+
+# Data Visualization
+visualization:
+  color_palette: "Set2"
+  style: "whitegrid"
+  context: "notebook"
+  
+  # Chart configurations
+  execution_time_chart:
+    type: "bar"
+    x_label: "Query"
+    y_label: "Execution Time (seconds)"
+    title: "Query Execution Time Comparison"
+    
+  performance_comparison_chart:
+    type: "grouped_bar"
+    x_label: "Format"
+    y_label: "Average Execution Time (seconds)"
+    title: "Format Performance Comparison"
+    
+  cost_analysis_chart:
+    type: "scatter"
+    x_label: "Execution Time (seconds)"
+    y_label: "Cost (credits)"
+    title: "Cost vs Performance Analysis"
+
+# Report Metadata
+metadata:
+  project_name: "Snowflake Iceberg Performance Testing"
+  version: "1.0.0"
+  author: "Performance Testing Team"
+  description: "Comprehensive performance testing of Snowflake table formats"
+  keywords: ["snowflake", "iceberg", "performance", "testing", "benchmark"]
+  
+  # Contact information
+  contact:
+    email: "performance-team@company.com"
+    phone: "+1-555-0123"
+    website: "https://company.com/performance-testing"
+
+# Quality Assurance
+quality_assurance:
+  enable_validation: true
+  validation_rules:
+    - name: "data_consistency"
+      description: "Check data consistency across formats"
+      threshold: 0.01
+    - name: "performance_variance"
+      description: "Check performance variance within acceptable limits"
+      threshold: 0.2
+    - name: "cost_reasonableness"
+      description: "Check cost is within reasonable limits"
+      threshold: 1.0
+
+# Archival Configuration
+archival:
+  enable_archival: true
+  archive_after_days: 30
+  archive_location: "s3://performance-test-archive/"
+  compression: "gzip"
+  encryption: true

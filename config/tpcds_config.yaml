@@ -1,0 +1,78 @@
+# TPC-DS Data Loader Configuration
+# Configuration for TPC-DS data generation and loading
+
+# Data Generation Settings
+generation:
+  scale_factor: 1.0  # Scale factor for data generation (1.0 = 1GB)
+  data_directory: "data/tpcds_data"  # Directory to store generated data
+  convert_to_parquet: true  # Convert generated .dat files to Parquet format
+  cleanup_after_generation: false  # Clean up .dat files after Parquet conversion
+
+# Snowflake Connection Settings
+snowflake:
+  database: "tpcds_performance_test"
+  warehouse: "tpcds_test_wh"
+  schemas:
+    native: "tpcds_native_format"
+    iceberg_sf: "tpcds_iceberg_sf_format"
+    iceberg_glue: "tpcds_iceberg_glue_format"
+    external: "tpcds_external_format"
+
+# AWS Settings for S3-based formats
+aws:
+  region: "us-east-1"
+  s3_bucket: "your-bucket-name"
+  s3_prefix: "iceberg-performance-test"
+  credentials:
+    access_key_id: "${AWS_ACCESS_KEY_ID}"
+    secret_access_key: "${AWS_SECRET_ACCESS_KEY}"
+
+# TPC-DS Table Settings
+tables:
+  # Dimension tables (smaller, loaded first)
+  dimension_tables:
+    - "call_center"
+    - "catalog_page"
+    - "customer"
+    - "customer_address"
+    - "customer_demographics"
+    - "date_dim"
+    - "household_demographics"
+    - "income_band"
+    - "item"
+    - "promotion"
+    - "reason"
+    - "ship_mode"
+    - "store"
+    - "time_dim"
+    - "warehouse"
+    - "web_page"
+    - "web_site"
+  
+  # Fact tables (larger, loaded after dimension tables)
+  fact_tables:
+    - "catalog_returns"
+    - "catalog_sales"
+    - "inventory"
+    - "store_returns"
+    - "store_sales"
+    - "web_returns"
+    - "web_sales"
+
+# Performance Settings
+performance:
+  batch_size: 10000  # Batch size for data loading
+  max_workers: 4  # Maximum number of worker threads
+  connection_pool_size: 5  # Snowflake connection pool size
+
+# Logging Settings
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "results/logs/tpcds_data_loader.log"  # Log file path
+
+# Validation Settings
+validation:
+  verify_row_counts: true  # Verify row counts after loading
+  verify_data_integrity: true  # Verify data integrity
+  sample_queries: true  # Run sample queries for verification

@@ -1,0 +1,33 @@
+test_name: "Smoke Test - 10K rows"
+description: "Test with 10K rows per table"
+duration_estimate: "10-15 minutes"
+data_volume: "medium"
+
+# Data Configuration
+data_config:
+  # 10K rows per table
+  loan_count: 10000
+  borrower_count: 10000
+  property_count: 10000
+  servicer_count: 10000
+  address_count: 10000
+  payment_count: 10000
+  transaction_count: 10000
+  credit_score_count: 10000
+  employment_count: 10000
+  loan_balance_count: 10000
+  loan_document_count: 10000
+  loan_modification_count: 10000
+  insurance_policy_count: 10000
+  property_tax_count: 10000
+  loan_servicing_note_count: 10000
+  property_appraisal_count: 10000
+  loan_insurance_count: 10000
+  borrower_contact_count: 10000
+  loan_audit_log_count: 10000
+  payment_schedule_count: 10000
+  
+  # Date range for testing
+  date_range:
+    start: "2023-01-01"
+    end: "2023-12-31"

@@ -1,0 +1,289 @@
+# Smoke Test Configuration
+# Minimal test configuration to validate all functionality with small datasets
+# Perfect for setup validation and development testing
+
+# Test Overview
+test_name: "Smoke Test - Minimal Functionality Validation"
+description: "Quick validation test with minimal data to verify all components work"
+duration_estimate: "5-10 minutes"
+data_volume: "small"
+
+# Data Configuration
+data_config:
+  # 5 rows per table for exact testing
+  loan_count: 5          # 5 loans
+  borrower_count: 5      # 5 borrowers
+  property_count: 5      # 5 properties
+  servicer_count: 5      # 5 servicers
+  address_count: 5       # 5 addresses
+  payment_count: 5       # 5 payments
+  transaction_count: 5   # 5 transactions
+  credit_score_count: 5  # 5 credit scores
+  employment_count: 5   # 5 employment records
+  loan_balance_count: 5  # 5 loan balances
+  loan_document_count: 5 # 5 loan documents
+  loan_modification_count: 5 # 5 loan modifications
+  insurance_policy_count: 5 # 5 insurance policies
+  property_tax_count: 5  # 5 property taxes
+  loan_servicing_note_count: 5 # 5 servicing notes
+  property_appraisal_count: 5 # 5 property appraisals
+  loan_insurance_count: 5 # 5 loan insurance records
+  borrower_contact_count: 5 # 5 borrower contacts
+  loan_audit_log_count: 5 # 5 audit log entries
+  payment_schedule_count: 5 # 5 payment schedules
+  
+  # Date range for minimal testing
+  date_range:
+    start: "2023-01-01"
+    end: "2023-12-31"
+  
+  # Geographic distribution (simplified)
+  geographic_distribution:
+    - state: "CA"
+      weight: 0.4
+    - state: "NY" 
+      weight: 0.3
+    - state: "TX"
+      weight: 0.3
+  
+  # Loan types (simplified)
+  loan_types:
+    - type: "conventional"
+      weight: 0.7
+    - type: "FHA"
+      weight: 0.3
+  
+  # Status distribution (simplified)
+  status_distribution:
+    - status: "active"
+      weight: 0.9
+    - status: "paid_off"
+      weight: 0.1
+
+# Test Execution Configuration
+execution_config:
+  iterations: 1              # Single iteration for speed
+  warmup_iterations: 0       # No warmup needed for smoke test
+  delay_between_queries: 0   # No delays for speed
+  delay_between_formats: 1   # Minimal delay between formats
+  timeout_seconds: 60        # Short timeout
+  
+  # Parallel execution for speed
+  parallel_execution: true
+  max_parallel_queries: 4
+
+# Query Selection (Minimal Set)
+query_selection:
+  # Basic queries - 1 of each type
+  basic_queries:
+    enabled: true
+    queries:
+      - "01_point_lookups.sql"      # 1 point lookup per format
+      - "02_range_queries.sql"      # 1 range query per format  
+      - "03_filter_queries.sql"    # 1 filter query per format
+    max_queries_per_type: 1
+  
+  # Aggregation queries - 1 of each type
+  aggregation_queries:
+    enabled: true
+    queries:
+      - "01_basic_aggregations.sql"    # 1 basic aggregation
+      - "02_window_functions.sql"      # 1 window function
+      - "03_percentiles_statistics.sql" # 1 percentile query
+    max_queries_per_type: 1
+  
+  # Skip complex queries for smoke test
+  join_queries:
+    enabled: false
+  analytics_queries:
+    enabled: false
+  complex_queries:
+    enabled: false
+
+# Format Testing
+format_testing:
+  # Test all 4 formats
+  formats:
+    - "native"
+    - "iceberg_sf" 
+    - "iceberg_glue"
+    - "external"
+  
+  # Skip if format setup fails (for development)
+  continue_on_format_error: true
+  
+  # Test format connectivity first
+  connectivity_test: true
+
+# AWS Configuration (Minimal)
+aws_config:
+  # Use minimal S3 resources
+  s3_bucket: "${AWS_S3_BUCKET}"
+  s3_prefix: "smoke-test/"
+  s3_storage_class: "STANDARD"
+  
+  # Minimal Glue catalog usage
+  glue_database: "${AWS_GLUE_DATABASE}"
+  glue_table_prefix: "smoke_"
+  
+  # Skip expensive operations
+  enable_monitoring: false
+  enable_backup: false
+  enable_archival: false
+
+# Snowflake Configuration (Minimal)
+snowflake_config:
+  # Use smallest warehouse
+  warehouse_size: "X-SMALL"
+  auto_suspend: 30          # Quick suspend
+  auto_resume: true
+  
+  # Minimal compute usage
+  max_cluster_count: 1
+  min_cluster_count: 1
+  
+  # Skip expensive operations
+  enable_query_tagging: false
+  enable_result_caching: true
+
+# Performance Thresholds (Relaxed for Smoke Test)
+performance_thresholds:
+  execution_time:
+    excellent: 5.0          # Relaxed thresholds
+    good: 15.0
+    acceptable: 30.0
+    poor: 60.0
+  
+  memory_usage:
+    excellent: 500           # Relaxed thresholds
+    good: 1000
+    acceptable: 2000
+    poor: 5000
+  
+  cost_per_query:
+    excellent: 0.1           # Relaxed thresholds
+    good: 0.5
+    acceptable: 1.0
+    poor: 2.0
+
+# Validation Checks
+validation:
+  # Basic connectivity checks
+  connectivity_checks:
+    - "snowflake_connection"
+    - "aws_s3_access"
+    - "aws_glue_access"
+    - "external_volume_access"
+  
+  # Data consistency checks (simplified)
+  data_consistency:
+    - "row_count_validation"
+    - "basic_data_type_check"
+  
+  # Skip complex validations
+  skip_complex_validations: true
+
+# Reporting (Minimal)
+reporting:
+  # Generate only essential reports
+  report_formats: ["json", "html"]
+  include_charts: false
+  include_detailed_metrics: false
+  
+  # Minimal report sections
+  report_sections:
+    executive_summary: true
+    performance_comparison: true
+    format_analysis: false
+    query_analysis: false
+    cost_analysis: false
+    recommendations: true
+    detailed_metrics: false
+    charts_and_graphs: false
+
+# Error Handling
+error_handling:
+  # Continue on non-critical errors
+  continue_on_error: true
+  max_errors: 5
+  
+  # Skip problematic queries
+  skip_failing_queries: true
+  
+  # Log all errors for debugging
+  log_level: "DEBUG"
+
+# Resource Optimization
+resource_optimization:
+  # Use minimal resources
+  max_memory_usage: "1GB"
+  max_cpu_usage: "50%"
+  
+  # Quick cleanup
+  cleanup_after_test: true
+  cleanup_temp_files: true
+  cleanup_s3_objects: true
+  
+  # Skip expensive operations
+  skip_data_quality_checks: true
+  skip_performance_optimization: true
+
+# Test Scenarios
+test_scenarios:
+  # Quick validation scenario
+  quick_validation:
+    name: "Quick Functionality Validation"
+    description: "Fastest possible test to verify all components"
+    duration_estimate: "2-3 minutes"
+    data_volume: "minimal"
+    queries: ["basic_queries"]
+    iterations: 1
+  
+  # Connectivity test scenario  
+  connectivity_test:
+    name: "Connectivity Validation"
+    description: "Test all connections without data processing"
+    duration_estimate: "1 minute"
+    data_volume: "none"
+    queries: []
+    iterations: 1
+    skip_data_generation: true
+
+# Monitoring (Minimal)
+monitoring:
+  enable_monitoring: false  # Skip monitoring for smoke test
+  metrics_collection: false
+  alerting: false
+  
+  # Basic logging only
+  logging:
+    level: "INFO"
+    console_output: true
+    file_output: false
+
+# Output Configuration
+output:
+  # Minimal output
+  results_directory: "results/smoke_test"
+  timestamp_format: "%Y%m%d_%H%M%S"
+  compression: false
+  retention_days: 1          # Keep results for 1 day only
+  
+  # Skip expensive outputs
+  skip_detailed_logs: true
+  skip_performance_profiles: true
+  skip_cost_analysis: true
+
+# Development Mode
+development_mode:
+  enabled: true
+  skip_expensive_operations: true
+  use_mock_data: false
+  debug_mode: true
+  verbose_logging: true
+  
+  # Development shortcuts
+  skip_aws_setup: false      # Still test AWS connectivity
+  skip_snowflake_setup: false # Still test Snowflake connectivity
+  skip_data_validation: true
+  skip_performance_analysis: true

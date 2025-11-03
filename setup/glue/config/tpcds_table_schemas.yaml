@@ -1,0 +1,309 @@
+# TPC-DS Table Schemas for Glue Iceberg Tables
+# These schemas match the TPC-DS specification
+
+tables:
+  # Dimension Tables
+  call_center:
+    columns:
+      - name: "cc_call_center_sk"
+        type: "int"
+        nullable: false
+        comment: "Primary key"
+      - name: "cc_call_center_id"
+        type: "string"
+        nullable: false
+        comment: "Call center identifier"
+      - name: "cc_rec_start_date"
+        type: "date"
+        nullable: true
+        comment: "Record start date"
+      - name: "cc_rec_end_date"
+        type: "date"
+        nullable: true
+        comment: "Record end date"
+      - name: "cc_closed_date_sk"
+        type: "int"
+        nullable: true
+        comment: "Closed date SK"
+      - name: "cc_open_date_sk"
+        type: "int"
+        nullable: true
+        comment: "Open date SK"
+      - name: "cc_name"
+        type: "string"
+        nullable: true
+        comment: "Call center name"
+      - name: "cc_class"
+        type: "string"
+        nullable: true
+        comment: "Call center class"
+      - name: "cc_employees"
+        type: "int"
+        nullable: true
+        comment: "Number of employees"
+      - name: "cc_sq_ft"
+        type: "int"
+        nullable: true
+        comment: "Square footage"
+      - name: "cc_hours"
+        type: "string"
+        nullable: true
+        comment: "Operating hours"
+      - name: "cc_manager"
+        type: "string"
+        nullable: true
+        comment: "Manager name"
+      - name: "cc_mkt_id"
+        type: "int"
+        nullable: true
+        comment: "Market ID"
+      - name: "cc_mkt_class"
+        type: "string"
+        nullable: true
+        comment: "Market class"
+      - name: "cc_mkt_desc"
+        type: "string"
+        nullable: true
+        comment: "Market description"
+      - name: "cc_market_manager"
+        type: "string"
+        nullable: true
+        comment: "Market manager"
+      - name: "cc_division"
+        type: "int"
+        nullable: true
+        comment: "Division"
+      - name: "cc_division_name"
+        type: "string"
+        nullable: true
+        comment: "Division name"
+      - name: "cc_company"
+        type: "int"
+        nullable: true
+        comment: "Company"
+      - name: "cc_company_name"
+        type: "string"
+        nullable: true
+        comment: "Company name"
+      - name: "cc_street_number"
+        type: "string"
+        nullable: true
+        comment: "Street number"
+      - name: "cc_street_name"
+        type: "string"
+        nullable: true
+        comment: "Street name"
+      - name: "cc_street_type"
+        type: "string"
+        nullable: true
+        comment: "Street type"
+      - name: "cc_suite_number"
+        type: "string"
+        nullable: true
+        comment: "Suite number"
+      - name: "cc_city"
+        type: "string"
+        nullable: true
+        comment: "City"
+      - name: "cc_county"
+        type: "string"
+        nullable: true
+        comment: "County"
+      - name: "cc_state"
+        type: "string"
+        nullable: true
+        comment: "State"
+      - name: "cc_zip"
+        type: "string"
+        nullable: true
+        comment: "ZIP code"
+      - name: "cc_country"
+        type: "string"
+        nullable: true
+        comment: "Country"
+      - name: "cc_gmt_offset"
+        type: "double"
+        nullable: true
+        comment: "GMT offset"
+      - name: "cc_tax_percentage"
+        type: "double"
+        nullable: true
+        comment: "Tax percentage"
+    primary_key: ["cc_call_center_sk"]
+    comment: "Call center dimension table"
+
+  # Add more tables as needed...
+  # For now, we'll create a simplified version with key tables
+  
+  # Simplified schemas for initial setup
+  customer:
+    columns:
+      - name: "c_customer_sk"
+        type: "int"
+        nullable: false
+        comment: "Primary key"
+      - name: "c_customer_id"
+        type: "string"
+        nullable: false
+        comment: "Customer identifier"
+      - name: "c_current_cdemo_sk"
+        type: "int"
+        nullable: true
+        comment: "Current customer demographics SK"
+      - name: "c_current_hdemo_sk"
+        type: "int"
+        nullable: true
+        comment: "Current household demographics SK"
+      - name: "c_current_addr_sk"
+        type: "int"
+        nullable: true
+        comment: "Current address SK"
+      - name: "c_first_shipto_date_sk"
+        type: "int"
+        nullable: true
+        comment: "First ship-to date SK"
+      - name: "c_first_sales_date_sk"
+        type: "int"
+        nullable: true
+        comment: "First sales date SK"
+      - name: "c_salutation"
+        type: "string"
+        nullable: true
+        comment: "Salutation"
+      - name: "c_first_name"
+        type: "string"
+        nullable: true
+        comment: "First name"
+      - name: "c_last_name"
+        type: "string"
+        nullable: true
+        comment: "Last name"
+      - name: "c_preferred_cust_flag"
+        type: "string"
+        nullable: true
+        comment: "Preferred customer flag"
+      - name: "c_birth_day"
+        type: "int"
+        nullable: true
+        comment: "Birth day"
+      - name: "c_birth_month"
+        type: "int"
+        nullable: true
+        comment: "Birth month"
+      - name: "c_birth_year"
+        type: "int"
+        nullable: true
+        comment: "Birth year"
+      - name: "c_birth_country"
+        type: "string"
+        nullable: true
+        comment: "Birth country"
+      - name: "c_login"
+        type: "string"
+        nullable: true
+        comment: "Login"
+      - name: "c_email_address"
+        type: "string"
+        nullable: true
+        comment: "Email address"
+      - name: "c_last_review_date"
+        type: "string"
+        nullable: true
+        comment: "Last review date"
+    primary_key: ["c_customer_sk"]
+    comment: "Customer dimension table"
+
+  item:
+    columns:
+      - name: "i_item_sk"
+        type: "int"
+        nullable: false
+        comment: "Primary key"
+      - name: "i_item_id"
+        type: "string"
+        nullable: false
+        comment: "Item identifier"
+      - name: "i_rec_start_date"
+        type: "date"
+        nullable: true
+        comment: "Record start date"
+      - name: "i_rec_end_date"
+        type: "date"
+        nullable: true
+        comment: "Record end date"
+      - name: "i_item_desc"
+        type: "string"
+        nullable: true
+        comment: "Item description"
+      - name: "i_current_price"
+        type: "decimal(7,2)"
+        nullable: true
+        comment: "Current price"
+      - name: "i_wholesale_cost"
+        type: "decimal(7,2)"
+        nullable: true
+        comment: "Wholesale cost"
+      - name: "i_brand_id"
+        type: "int"
+        nullable: true
+        comment: "Brand ID"
+      - name: "i_brand"
+        type: "string"
+        nullable: true
+        comment: "Brand"
+      - name: "i_class_id"
+        type: "int"
+        nullable: true
+        comment: "Class ID"
+      - name: "i_class"
+        type: "string"
+        nullable: true
+        comment: "Class"
+      - name: "i_category_id"
+        type: "int"
+        nullable: true
+        comment: "Category ID"
+      - name: "i_category"
+        type: "string"
+        nullable: true
+        comment: "Category"
+      - name: "i_manufact_id"
+        type: "int"
+        nullable: true
+        comment: "Manufacturer ID"
+      - name: "i_manufact"
+        type: "string"
+        nullable: true
+        comment: "Manufacturer"
+      - name: "i_size"
+        type: "string"
+        nullable: true
+        comment: "Size"
+      - name: "i_formulation"
+        type: "string"
+        nullable: true
+        comment: "Formulation"
+      - name: "i_color"
+        type: "string"
+        nullable: true
+        comment: "Color"
+      - name: "i_units"
+        type: "string"
+        nullable: true
+        comment: "Units"
+      - name: "i_container"
+        type: "string"
+        nullable: true
+        comment: "Container"
+      - name: "i_manager_id"
+        type: "int"
+        nullable: true
+        comment: "Manager ID"
+      - name: "i_product_name"
+        type: "string"
+        nullable: true
+        comment: "Product name"
+    primary_key: ["i_item_sk"]
+    comment: "Item dimension table"
+
+# Add more tables as needed for the complete TPC-DS schema

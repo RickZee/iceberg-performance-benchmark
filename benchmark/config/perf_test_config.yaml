@@ -1,0 +1,131 @@
+# TPC-DS Performance Test Configuration
+
+# Test Settings
+test_settings:
+  max_queries_per_format: 99
+  max_execution_time: 300  # 5 minutes per query
+  retry_attempts: 3
+  warmup_runs: 1  # Number of warmup runs before timing
+  test_runs: 3    # Number of actual test runs for averaging
+  delay_between_queries: 1  # Seconds to wait between queries
+  delay_between_formats: 5  # Seconds to wait between format tests
+
+# Performance Thresholds
+performance_thresholds:
+  max_execution_time: 300  # Maximum acceptable execution time (seconds)
+  memory_limit_mb: 1024    # Memory limit per query (MB)
+  error_rate_threshold: 0.05  # Maximum acceptable error rate (5%)
+  success_rate_threshold: 0.95  # Minimum acceptable success rate (95%)
+
+# Query Execution Settings
+query_settings:
+  add_safety_limit: true   # Add LIMIT 1000 to queries without LIMIT
+  timeout_per_query: 600   # Query timeout in seconds
+  enable_query_caching: false  # Enable query result caching
+  cache_ttl: 3600          # Cache TTL in seconds
+
+# Reporting Configuration
+reporting:
+  generate_html: true      # Generate HTML reports
+  generate_pdf: false      # Generate PDF reports (requires additional setup)
+  generate_csv: true       # Generate CSV data files
+  generate_json: true      # Generate JSON reports
+  include_charts: true     # Include performance charts
+  include_query_details: true  # Include detailed query information
+  include_error_analysis: true  # Include error analysis
+
+# Analytics Settings
+analytics:
+  generate_comparison_charts: true
+  generate_performance_trends: true
+  generate_format_analysis: true
+  generate_query_categorization: true
+  include_statistical_analysis: true
+
+# Output Settings
+output:
+  results_directory: "tpcds_perf_test/results"
+  reports_directory: "tpcds_perf_test/reports"
+  logs_directory: "tpcds_perf_test/logs"
+  timestamp_format: "%Y%m%d_%H%M%S"
+  compress_old_reports: false
+  keep_reports_days: 30
+
+# Database Connection Settings (inherited from main config)
+database:
+  connection_pool_size: 5
+  connection_timeout: 30
+  query_timeout: 600
+  enable_connection_pooling: true
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_to_file: true
+  log_to_console: true
+  log_format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  max_log_size_mb: 100
+  backup_count: 5
+
+# Test Modes
+test_modes:
+  quick_test:
+    max_queries: 5
+    test_runs: 1
+    warmup_runs: 0
+  
+  standard_test:
+    max_queries: 20
+    test_runs: 2
+    warmup_runs: 1
+  
+  comprehensive_test:
+    max_queries: 99
+    test_runs: 3
+    warmup_runs: 1
+  
+  stress_test:
+    max_queries: 99
+    test_runs: 5
+    warmup_runs: 2
+    delay_between_queries: 0
+
+# Format-Specific Settings
+format_settings:
+  native:
+    expected_performance: "baseline"
+    priority: 1
+  
+  iceberg_sf:
+    expected_performance: "comparable"
+    priority: 2
+  
+  iceberg_glue:
+    expected_performance: "comparable"
+    priority: 3
+  
+  external:
+    expected_performance: "variable"
+    priority: 4
+
+# Query Categories (for analysis)
+query_categories:
+  reporting:
+    queries: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    expected_complexity: "medium"
+  
+  ad_hoc:
+    queries: [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40]
+    expected_complexity: "high"
+  
+  iterative:
+    queries: [41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60]
+    expected_complexity: "medium"
+  
+  data_analysis:
+    queries: [61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80]
+    expected_complexity: "high"
+  
+  complex_analytics:
+    queries: [81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
+    expected_complexity: "very_high"
