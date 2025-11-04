@@ -20,13 +20,28 @@ setup/glue/
 │   ├── glue_catalog_config.yaml       # Glue catalog settings
 │   └── tpcds_table_schemas.yaml       # TPC-DS table schemas
 ├── scripts/
-│   ├── create_glue_tables.py          # Main script to create Glue tables (Spark approach)
-│   ├── load_tpcds_data.py             # Load TPC-DS data into Glue tables
-│   ├── create_snowflake_glue_tables.py # Create Snowflake references to Glue tables
-│   ├── verify_glue_tables.py          # Verify tables in Glue and Snowflake
-│   ├── cleanup_glue_tables.py         # Cleanup script
+│   ├── create/                        # Table creation scripts
+│   │   ├── create_glue_tables.py      # Main script to create Glue tables (Spark approach)
+│   │   ├── load_tpcds_data.py         # Load TPC-DS data into Glue tables
+│   │   └── create_snowflake_glue_tables.py # Create Snowflake references to Glue tables
+│   ├── verify/                        # Verification scripts
+│   │   ├── verify_glue_tables.py      # Verify tables in Glue and Snowflake
+│   │   ├── verify_glue_table_counts.py # Verify row counts
+│   │   └── verify_snowflake_glue_tables.py # Verify in Snowflake
+│   ├── maintenance/                   # Maintenance and cleanup scripts
+│   │   ├── cleanup_glue_tables.py     # Cleanup script
+│   │   └── clear_glue_table_data.py   # Clear table data
+│   ├── troubleshooting/               # One-off troubleshooting scripts (for reference)
+│   │   ├── drop_failing_tables.py     # Drop specific failing tables
+│   │   ├── drop_failing_tables_glue.py # Drop tables via Glue API
+│   │   ├── fix_and_integrate_glue_tables.sh # Integration fix script
+│   │   ├── recreate_all_glue_tables.py # Recreate all tables
+│   │   └── fix_glue_schemas.py        # Fix table schemas
 │   ├── generate_glue_etl_job.py       # Generate Glue ETL job script
 │   ├── create_all_iceberg_tables_glue_etl.py # Generated ETL job script
+│   ├── create_iceberg_tables_glue_etl.py # ETL job script
+│   ├── extract_all_tables_for_glue_etl.py # Extract tables for ETL
+│   ├── extract_schemas_from_terraform.py # Extract schemas from Terraform
 │   ├── create_glue_job.py             # Python deployment script
 │   └── deploy_and_run_glue_job.sh     # Deployment script
 ├── logs/                              # Log files
@@ -219,10 +234,10 @@ Uses AWS Glue ETL jobs to create tables in managed Spark environment.
 1. **Download required JAR files** (see [Downloading JAR Files](#downloading-jar-files) above)
 2. **Configure settings** in `config/` files
 3. **Install dependencies**: `pip install -r requirements.txt`
-4. **Create Glue tables**: `python scripts/create_glue_tables.py`
-5. **Load data**: `python scripts/load_tpcds_data.py`
-6. **Create Snowflake references**: `python scripts/create_snowflake_glue_tables.py`
-7. **Verify setup**: `python scripts/verify_glue_tables.py`
+4. **Create Glue tables**: `python scripts/create/create_glue_tables.py`
+5. **Load data**: `python scripts/create/load_tpcds_data.py`
+6. **Create Snowflake references**: `python scripts/create/create_snowflake_glue_tables.py`
+7. **Verify setup**: `python scripts/verify/verify_glue_tables.py`
 
 ### Approach 2: AWS Glue ETL
 
@@ -250,8 +265,8 @@ Uses AWS Glue ETL jobs to create tables in managed Spark environment.
    aws glue start-job-run --job-name create-iceberg-tables-tpcds
    ```
 
-3. **Create Snowflake references**: `python scripts/create_snowflake_glue_tables.py`
-4. **Verify setup**: `python scripts/verify_glue_tables.py`
+3. **Create Snowflake references**: `python scripts/create/create_snowflake_glue_tables.py`
+4. **Verify setup**: `python scripts/verify/verify_glue_tables.py`
 
 ## Detailed Workflow
 
@@ -262,7 +277,7 @@ Uses AWS Glue ETL jobs to create tables in managed Spark environment.
 - Uses Spark with Iceberg extensions
 - Creates tables in AWS Glue catalog
 - Registers proper Iceberg metadata
-- Command: `python scripts/create_glue_tables.py`
+- Command: `python scripts/create/create_glue_tables.py`
 
 #### Using AWS Glue ETL
 
@@ -276,14 +291,14 @@ Uses AWS Glue ETL jobs to create tables in managed Spark environment.
 - Loads existing Parquet data into Glue tables
 - Uses Iceberg append operations
 - Maintains ACID properties
-- Command: `python scripts/load_tpcds_data.py`
+- Command: `python scripts/create/load_tpcds_data.py`
 
 ### Step 3: Reference in Snowflake
 
 - Creates Snowflake table references to Glue tables
 - Uses existing external volume and catalog integration
 - Enables querying from Snowflake
-- Command: `python scripts/create_snowflake_glue_tables.py`
+- Command: `python scripts/create/create_snowflake_glue_tables.py`
 
 ## Configuration
 
@@ -385,7 +400,7 @@ After tables are created:
 
 4. **Use verification script**:
    ```bash
-   python scripts/verify_glue_tables.py
+   python scripts/verify/verify_glue_tables.py
    ```
 
 ## Troubleshooting
@@ -432,11 +447,27 @@ After tables are created:
 
 ### Main Scripts
 
+#### Creation Scripts (`scripts/create/`)
 - `create_glue_tables.py` - Main table creation script (Spark approach, Step 1)
 - `load_tpcds_data.py` - Data loading script (Step 2)
 - `create_snowflake_glue_tables.py` - Create Snowflake table references (Step 3)
-- `verify_glue_tables.py` - Verification and testing
+
+#### Verification Scripts (`scripts/verify/`)
+- `verify_glue_tables.py` - Comprehensive verification and testing
+- `verify_glue_table_counts.py` - Verify row counts for all tables
+- `verify_snowflake_glue_tables.py` - Verify tables in Snowflake
+
+#### Maintenance Scripts (`scripts/maintenance/`)
 - `cleanup_glue_tables.py` - Cleanup utilities
+- `clear_glue_table_data.py` - Clear data from tables
+
+#### Troubleshooting Scripts (`scripts/troubleshooting/`)
+These are one-off scripts used during troubleshooting. They're kept for reference but are not part of the standard workflow:
+- `drop_failing_tables.py` - Drop specific failing tables
+- `drop_failing_tables_glue.py` - Drop tables via Glue API
+- `fix_and_integrate_glue_tables.sh` - Integration fix script
+- `recreate_all_glue_tables.py` - Recreate all tables
+- `fix_glue_schemas.py` - Fix table schemas
 
 ### ETL Scripts (Approach 2)
 

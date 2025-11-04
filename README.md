@@ -62,7 +62,7 @@ iceberg-performance-benchmark/
 │       ├── run_tpcds_loader.py    # Runner script
 │       ├── test_tpcds_loader.py   # Test utilities
 │       ├── clear_tpcds_data.py    # Data cleanup utility
-│       ├── query_tpcds_tables.py  # Table query utility
+│       ├── query_all_tables.py  # Query all tables utility (schema|table|row_count)
 │       └── README.md         # Data loader documentation
 ├── benchmark/                # Performance testing framework
 │   ├── src/                  # Source code
@@ -413,16 +413,16 @@ cd setup/glue/
 pip install -r requirements.txt
 
 # Step 1: Create Glue tables (using Spark)
-python scripts/create_glue_tables.py
+python scripts/create/create_glue_tables.py
 
 # Step 2: Load TPC-DS data
-python scripts/load_tpcds_data.py
+python scripts/create/load_tpcds_data.py
 
 # Step 3: Create Snowflake references
-python scripts/create_snowflake_glue_tables.py
+python scripts/create/create_snowflake_glue_tables.py
 
 # Step 4: Verify setup
-python scripts/verify_glue_tables.py
+python scripts/verify/verify_glue_tables.py
 ```
 
 See [`setup/glue/README.md`](setup/glue/README.md) for detailed instructions.
@@ -452,6 +452,478 @@ The data loader will:
 - Load data into all configured table formats
 
 See [`setup/data/README.md`](setup/data/README.md) for detailed instructions.
+
+## 📊 Generating and Loading TPC-DS Data
+
+This section provides comprehensive guidance on generating TPC-DS benchmark data and loading it into all four table formats. The workflow varies by format, with Glue-managed Iceberg tables requiring special handling.
+
+### Overview
+
+The TPC-DS data generation and loading process consists of:
+
+1. **Data Generation**: Generate standard TPC-DS data using the official toolkit
+2. **Format Conversion**: Convert generated `.dat` files to Parquet format
+3. **Data Loading**: Load data into Snowflake tables (format-specific methods)
+
+**Important**: Glue-managed Iceberg tables require a different workflow than other formats. They must use Spark with Iceberg extensions for both table creation and data loading, as they cannot use standard SQL INSERT operations.
+
+### Prerequisites
+
+#### TPC-DS Toolkit Installation
+
+The TPC-DS toolkit is required for data generation. The generator will attempt to auto-install it, but manual installation is recommended:
+
+**Option 1: Auto-Install (Automatic)**
+
+The generator will automatically download and compile the TPC-DS toolkit if not found. This requires:
+- Internet connection
+- `wget` or `curl` command-line tool
+- `unzip` command
+- `gcc` compiler (for Linux/macOS)
+- `make` command
+
+**Option 2: Manual Installation**
+
+1. Download the TPC-DS toolkit from [TPC.org](https://www.tpc.org/tpcds/)
+2. Extract to a directory (e.g., `/opt/tpcds-kit` or `~/tpcds-kit`)
+3. Compile the tools:
+   ```bash
+   cd /path/to/tpcds-kit/tools
+   make OS=LINUX CC=gcc  # For Linux
+   # or
+   make OS=MACOS CC=gcc  # For macOS
+   ```
+
+The generator will search for the toolkit in common locations:
+- `/opt/tpcds-kit`
+- `/usr/local/tpcds-kit`
+- `~/tpcds-kit`
+- `tools/tpcds-kit` (relative to project root)
+
+#### Python Packages
+
+Ensure all required packages are installed:
+
+```bash
+pip install -r requirements.txt
+```
+
+Key packages for data generation and loading:
+- `pandas` - Data manipulation
+- `pyarrow` - Parquet file handling
+- `boto3` - AWS S3 integration
+- `snowflake-connector-python` - Snowflake connectivity
+
+#### Format-Specific Requirements
+
+**For Native and Iceberg SF formats:**
+- Snowflake connection configured
+- Database and schemas created (see Setup Instructions)
+
+**For External format:**
+- AWS credentials configured
+- S3 bucket accessible
+- External tables created in Snowflake
+
+**For Glue-managed Iceberg format:**
+- Spark installation (local) or AWS Glue 4.0+ access
+- Iceberg JAR files (see Glue-Managed Iceberg Tables section)
+- AWS Glue catalog access
+- Glue database created
+
+### Data Generation
+
+#### Understanding Scale Factors
+
+TPC-DS scale factors determine the data size:
+
+| Scale Factor | Approximate Size | Use Case |
+|--------------|------------------|----------|
+| 0.01 | ~10 MB | Quick testing |
+| 0.1 | ~100 MB | Development |
+| 1.0 | ~1 GB | Standard testing |
+| 10.0 | ~10 GB | Performance testing |
+| 100.0 | ~100 GB | Large-scale testing |
+
+#### Generating Data
+
+**Using the Main Application:**
+
+```bash
+# Generate data with scale factor 1.0 (1GB)
+python setup/data/main.py --action generate --scale-factor 1.0
+
+# Generate with custom data directory
+python setup/data/main.py --action generate --scale-factor 10.0 --data-dir /path/to/data
+```
+
+**Using the Generator Directly:**
+
+```bash
+python setup/data/tpcds_generator.py --scale-factor 1.0 --convert-parquet
+```
+
+#### Data Structure
+
+After generation, data is organized as:
+
+```
+data/tpcds_data_sf1.0/
+├── *.dat                    # Original TPC-DS data files (24 tables)
+└── parquet/                 # Parquet format files
+    ├── call_center.parquet
+    ├── catalog_page.parquet
+    ├── customer.parquet
+    └── ... (24 tables total)
+```
+
+The generator automatically converts `.dat` files to Parquet format for efficient loading.
+
+### Loading Data by Format
+
+The loading process differs significantly between formats. Below are format-specific instructions.
+
+#### Native Snowflake Tables
+
+**Method**: Direct INSERT via Snowflake connector
+
+**Workflow:**
+1. Generate and convert data to Parquet (if not already done)
+2. Load data using the standard loader
+
+**Commands:**
+
+```bash
+# Load into native tables only
+python setup/data/main.py --action load --formats native --data-dir data/tpcds_data_sf1.0
+
+# Full pipeline (generate + load)
+python setup/data/main.py --action full --scale-factor 1.0 --formats native
+```
+
+**What Happens:**
+- Parquet files are read into pandas DataFrames
+- Data is inserted using `INSERT INTO` statements via Snowflake connector
+- All 24 tables are loaded sequentially
+
+**Verification:**
+
+```sql
+-- Check row counts in Snowflake
+SELECT COUNT(*) FROM tpcds_native_format.call_center;
+SELECT COUNT(*) FROM tpcds_native_format.store_sales;
+```
+
+#### Iceberg Snowflake-Managed Tables
+
+**Method**: Direct INSERT via Snowflake connector (Iceberg metadata managed by Snowflake)
+
+**Workflow:**
+1. Generate and convert data to Parquet
+2. Load data using the standard loader (Snowflake handles Iceberg metadata)
+
+**Commands:**
+
+```bash
+# Load into Iceberg SF tables only
+python setup/data/main.py --action load --formats iceberg_sf --data-dir data/tpcds_data_sf1.0
+
+# Full pipeline
+python setup/data/main.py --action full --scale-factor 1.0 --formats iceberg_sf
+```
+
+**What Happens:**
+- Same as native tables, but Snowflake automatically manages Iceberg metadata
+- Iceberg files are written to the external volume
+- ACID properties and versioning are enabled
+
+**Verification:**
+
+```sql
+-- Check row counts
+SELECT COUNT(*) FROM tpcds_iceberg_sf_format.call_center;
+
+-- Check Iceberg metadata
+SHOW ICEBERG TABLES IN SCHEMA tpcds_iceberg_sf_format;
+```
+
+#### External Tables
+
+**Method**: Write Parquet files to S3, refresh external table metadata
+
+**Workflow:**
+1. Generate and convert data to Parquet
+2. Upload Parquet files to S3
+3. Refresh external table metadata
+
+**Commands:**
+
+```bash
+# Load into external tables only
+python setup/data/main.py --action load --formats external --data-dir data/tpcds_data_sf1.0 --refresh-external
+
+# Full pipeline
+python setup/data/main.py --action full --scale-factor 1.0 --formats external --refresh-external
+```
+
+**What Happens:**
+- Parquet files are uploaded to S3 at the external table location
+- External table metadata is refreshed to discover new files
+- Tables read directly from S3 without data loading into Snowflake
+
+**S3 Structure:**
+
+```
+s3://your-bucket/iceberg-performance-test/tpcds_external_format/
+├── call_center_external/
+│   └── data.parquet
+├── store_sales_external/
+│   └── data.parquet
+└── ... (24 tables)
+```
+
+**Verification:**
+
+```sql
+-- Check row counts
+SELECT COUNT(*) FROM tpcds_external_format.call_center;
+
+-- Refresh if needed
+ALTER EXTERNAL TABLE tpcds_external_format.call_center REFRESH;
+```
+
+#### Iceberg Glue-Managed Tables
+
+**⚠️ IMPORTANT**: Glue-managed Iceberg tables require a **completely different workflow** than other formats. They cannot use the standard data loader.
+
+**Why Special Handling is Required:**
+
+1. **ACID Properties**: Iceberg tables require proper metadata management for ACID transactions
+2. **Glue Catalog**: Tables must be created in AWS Glue catalog first
+3. **Iceberg Operations**: Data must be loaded using Iceberg append operations via Spark, not standard SQL INSERT
+4. **Metadata Files**: Iceberg generates metadata files that must be tracked in the Glue catalog
+
+**Prerequisites for Glue-Managed Tables:**
+
+1. **JAR Files**: Download Iceberg runtime JARs for Spark
+
+   ```bash
+   mkdir -p setup/glue/libs/jars
+   cd setup/glue/libs/jars
+   
+   # Download Iceberg JARs
+   curl -O https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-aws/1.4.2/iceberg-aws-1.4.2.jar
+   curl -O https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-3.3_2.12/1.4.2/iceberg-spark-runtime-3.3_2.12-1.4.2.jar
+   ```
+
+   See [`setup/glue/README.md`](setup/glue/README.md#downloading-jar-files) for detailed download instructions.
+
+2. **Spark Setup** (for local approach):
+   - Install Spark 3.3+ with Python support
+   - Configure Spark to use Iceberg extensions
+   - Ensure AWS credentials are configured
+
+3. **AWS Glue Setup** (for ETL approach):
+   - AWS Glue 4.0+ access
+   - Glue service role with S3 and Glue catalog permissions
+   - Upload JARs to S3 for Glue job access
+
+4. **Configuration Files**:
+   - `setup/glue/config/spark_config.yaml` - Spark configuration
+   - `setup/glue/config/glue_catalog_config.yaml` - Glue catalog settings
+   - `setup/glue/config/tpcds_table_schemas.yaml` - Table schemas
+
+**Step-by-Step Workflow for Glue-Managed Tables:**
+
+**Step 1: Create Glue Tables**
+
+You have two approaches:
+
+**Approach A: Local Spark (Recommended for Development)**
+
+```bash
+cd setup/glue/
+
+# Install additional dependencies
+pip install -r requirements.txt
+
+# Create Glue tables using local Spark
+python scripts/create/create_glue_tables.py
+```
+
+**Approach B: AWS Glue ETL (Recommended for Production)**
+
+```bash
+cd setup/glue/scripts
+
+# Generate the Glue ETL script
+python generate_glue_etl_job.py
+
+# Deploy and run the Glue job
+./deploy_and_run_glue_job.sh
+```
+
+See [`setup/glue/README.md`](setup/glue/README.md) for detailed instructions on both approaches.
+
+**Step 2: Load TPC-DS Data into Glue Tables**
+
+⚠️ **Critical**: This step must use Spark with Iceberg extensions, NOT the standard data loader.
+
+```bash
+cd setup/glue/
+
+# Load data using Spark (reads from Parquet files)
+python scripts/create/load_tpcds_data.py
+```
+
+**What Happens:**
+- Spark reads Parquet files from your data directory
+- Uses Iceberg append operations to load data
+- Maintains ACID properties and metadata
+- Creates Iceberg metadata files in S3
+
+**S3 Structure for Glue Iceberg Tables:**
+
+```
+s3://your-bucket/iceberg-performance-test/iceberg_glue_format/
+├── call_center/
+│   ├── data/
+│   │   └── *.parquet
+│   └── metadata/
+│       ├── *.metadata.json
+│       └── snapshots/
+└── ... (24 tables)
+```
+
+**Step 3: Create Snowflake References**
+
+After tables are created and data is loaded in Glue, create Snowflake references:
+
+```bash
+python scripts/create_snowflake_glue_tables.py
+```
+
+This creates Snowflake table references that point to the Glue-managed tables.
+
+**Step 4: Verify Setup**
+
+```bash
+# Verify in Glue and Snowflake
+python scripts/verify/verify_glue_tables.py
+```
+
+**Verification in Glue Console:**
+1. Go to AWS Glue Console → Databases → `iceberg_performance_test`
+2. Verify all 24 tables are listed
+3. Check that table type shows "ICEBERG"
+
+**Verification in Snowflake:**
+
+```sql
+-- Check row counts
+SELECT COUNT(*) FROM AWS_GLUE_CATALOG.iceberg_performance_test.call_center;
+
+-- List all Glue tables
+SHOW TABLES IN SCHEMA AWS_GLUE_CATALOG.iceberg_performance_test;
+```
+
+**Complete Workflow Summary:**
+
+```bash
+# 1. Generate TPC-DS data (if not already done)
+python setup/data/main.py --action generate --scale-factor 1.0
+
+# 2. Create Glue tables (using Spark)
+cd setup/glue/
+python scripts/create/create_glue_tables.py
+
+# 3. Load data into Glue tables (using Spark)
+python scripts/create/load_tpcds_data.py
+
+# 4. Create Snowflake references
+python scripts/create/create_snowflake_glue_tables.py
+
+# 5. Verify setup
+python scripts/verify/verify_glue_tables.py
+```
+
+**Important Notes:**
+
+- ❌ **DO NOT** use `setup/data/main.py` for Glue-managed tables
+- ❌ **DO NOT** use standard SQL INSERT for Glue Iceberg tables
+- ✅ **DO USE** Spark with Iceberg extensions for table creation and data loading
+- ✅ **DO VERIFY** tables exist in Glue catalog before creating Snowflake references
+- ✅ **DO CHECK** S3 metadata files are created correctly
+
+**Troubleshooting Glue Tables:**
+
+- **Table creation fails**: Check Spark configuration and JAR files
+- **Data loading fails**: Verify Parquet files exist and Spark can access them
+- **Snowflake can't query**: Verify external volume and catalog integration are configured
+- **No metadata files**: Ensure Iceberg extensions are properly loaded in Spark
+
+For detailed troubleshooting, see [`setup/glue/README.md`](setup/glue/README.md#troubleshooting) and [`docs/glue-integration-journey.md`](docs/glue-integration-journey.md).
+
+### Quick Reference
+
+**Generate Data Only:**
+
+```bash
+python setup/data/main.py --action generate --scale-factor 1.0
+```
+
+**Load Data for Native, Iceberg SF, or External:**
+
+```bash
+# Load all formats (except Glue)
+python setup/data/main.py --action load --formats native iceberg_sf external
+
+# Full pipeline
+python setup/data/main.py --action full --scale-factor 1.0 --formats native iceberg_sf external
+```
+
+**Load Data for Glue-Managed Iceberg:**
+
+```bash
+# Step 1: Create tables
+cd setup/glue/
+python scripts/create/create_glue_tables.py
+
+# Step 2: Load data
+python scripts/create/load_tpcds_data.py
+
+# Step 3: Create Snowflake references
+python scripts/create/create_snowflake_glue_tables.py
+```
+
+**Verify Data:**
+
+```bash
+# For standard formats
+python setup/data/main.py --action verify
+
+# For Glue tables
+cd setup/glue/
+python scripts/verify/verify_glue_tables.py
+```
+
+**Cleanup Data:**
+
+```bash
+# For standard formats
+python setup/data/main.py --action cleanup
+
+# For Glue tables
+cd setup/glue/
+python scripts/maintenance/cleanup_glue_tables.py
+```
+
+### Additional Resources
+
+- **[TPC-DS Data Loader Documentation](setup/data/README.md)** - Detailed data loader documentation
+- **[Glue Table Setup Guide](setup/glue/README.md)** - Comprehensive Glue-managed table setup
+- **[Glue Integration Journey](docs/glue-integration-journey.md)** - Troubleshooting and integration guide
+- **[TPC-DS Configuration](config/tpcds_config.yaml)** - Configuration file reference
 
 ## 🧪 Running Performance Tests
 
@@ -619,7 +1091,7 @@ Or manually clean up Glue tables:
 
 ```bash
 cd setup/glue/
-python scripts/cleanup_glue_tables.py
+python scripts/maintenance/cleanup_glue_tables.py
 ```
 
 ### Snowflake Cleanup

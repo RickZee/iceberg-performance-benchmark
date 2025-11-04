@@ -95,6 +95,13 @@ def create_spark_session(spark_config):
     
     return spark.getOrCreate()
 
+def format_table_name(catalog_name, database_name, table_name):
+    """Format table name with proper quoting for hyphenated identifiers
+    
+    Based on simple-glue-setup approach: hyphenated names must be quoted with backticks
+    """
+    return f"{catalog_name}.`{database_name}`.`{table_name}`"
+
 def create_table_schema(table_name, table_def):
     """Create Spark DataFrame schema from table definition"""
     fields = []
@@ -128,7 +135,7 @@ def create_table_schema(table_name, table_def):
     
     return StructType(fields)
 
-def create_iceberg_table(spark, table_name, table_def, glue_config):
+def create_iceberg_table(spark, table_name, table_def, glue_config, replace_if_exists=False):
     """Create an Iceberg table in Glue catalog"""
     logger = logging.getLogger(__name__)
     
@@ -141,11 +148,22 @@ def create_iceberg_table(spark, table_name, table_def, glue_config):
         table_properties = glue_config['glue']['table_properties']
         
         # Create table using Iceberg
-        catalog_name = glue_config['glue']['catalog_name']
+        # Use the Spark catalog name from config (glue_catalog) instead of AWS catalog name
+        # The AWS catalog name may contain hyphens which are invalid in SQL identifiers
+        # IMPORTANT: Use backticks for hyphenated database/table names (from simple-glue-setup)
+        catalog_name = "glue_catalog"  # This matches the Spark config catalog name
         database_name = glue_config['glue']['database_name']
-        full_table_name = f"{catalog_name}.{database_name}.{table_name}"
+        full_table_name = format_table_name(catalog_name, database_name, table_name)
         
         logger.info(f"Creating table: {full_table_name}")
+        
+        # Drop table if it exists and replace_if_exists is True
+        if replace_if_exists:
+            try:
+                spark.sql(f"DROP TABLE IF EXISTS {full_table_name}")
+                logger.info(f"Dropped existing table: {full_table_name}")
+            except Exception as drop_err:
+                logger.warning(f"Could not drop table (may not exist): {drop_err}")
         
         # Write empty DataFrame to create table structure
         writer = empty_df.writeTo(full_table_name)
@@ -155,7 +173,31 @@ def create_iceberg_table(spark, table_name, table_def, glue_config):
             writer = writer.tableProperty(key, value)
         
         # Create the table
-        writer.create()
+        try:
+            writer.create()
+        except Exception as create_err:
+            create_msg = str(create_err)
+            if "already exists" in create_msg.lower() or "TABLE_OR_VIEW_ALREADY_EXISTS" in create_msg:
+                if replace_if_exists:
+                    # Drop and retry
+                    spark.sql(f"DROP TABLE IF EXISTS {full_table_name}")
+                    writer.create()
+                else:
+                    logger.warning(f"Table already exists: {full_table_name}. Use replace_if_exists=True to recreate.")
+                    return False
+            else:
+                raise
+        
+        # Get and log metadata location (important for Snowflake integration)
+        try:
+            metadata_result = spark.sql(
+                f"SHOW TBLPROPERTIES {full_table_name} ('metadata_location')"
+            ).collect()
+            if metadata_result:
+                metadata_location = metadata_result[0][0]
+                logger.info(f"Metadata location: {metadata_location}")
+        except Exception as e:
+            logger.warning(f"Could not retrieve metadata location: {e}")
         
         logger.info(f"✅ Successfully created table: {full_table_name}")
         return True
@@ -184,10 +226,17 @@ def main():
         
         logger.info(f"Creating {total_tables} tables in Glue catalog...")
         
+        # Check if we should replace existing tables
+        import sys
+        replace_existing = '--replace' in sys.argv or '-r' in sys.argv
+        
+        if replace_existing:
+            logger.info("⚠️  --replace flag detected: Will drop and recreate existing tables")
+        
         for table_name, table_def in table_schemas['tables'].items():
             logger.info(f"Creating table: {table_name}")
             
-            if create_iceberg_table(spark, table_name, table_def, glue_config):
+            if create_iceberg_table(spark, table_name, table_def, glue_config, replace_if_exists=replace_existing):
                 success_count += 1
             else:
                 logger.error(f"Failed to create table: {table_name}")
@@ -203,11 +252,12 @@ def main():
         
         # Show created tables
         logger.info("📋 Created tables:")
-        catalog_name = glue_config['glue']['catalog_name']
+        catalog_name = "glue_catalog"  # Use Spark catalog name
         database_name = glue_config['glue']['database_name']
         
         try:
-            tables = spark.sql(f"SHOW TABLES IN {catalog_name}.{database_name}")
+            # Use backticks for hyphenated database name
+            tables = spark.sql(f"SHOW TABLES IN {catalog_name}.`{database_name}`")
             tables.show()
         except Exception as e:
             logger.error(f"Error listing tables: {e}")

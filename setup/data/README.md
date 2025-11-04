@@ -259,11 +259,13 @@ The `tpcds_data_loader` package includes several additional utility scripts:
   - Usage: `python tpcds_data_loader/clear_tpcds_data.py`
 
 ### **Query and Reporting Scripts**
-- **`query_tpcds_tables.py`** - Queries all TPC-DS tables and generates reports
-  - Reports table status, row counts, column counts, and sizes
-  - Generates both text reports and CSV data files
-  - Saves outputs to `results/reports/` and `results/data/`
-  - Usage: `python tpcds_data_loader/query_tpcds_tables.py`
+- **`query_all_tables.py`** - Queries all tables from all schemas (defaults to TPC-DS schemas) and outputs schema|table|row_count
+  - Automatically discovers all schemas and tables
+  - Outputs in table format or CSV
+  - Can filter by schema or query all schemas
+  - Usage: `python setup/data/query_all_tables.py` (defaults to TPC-DS schemas)
+  - Usage: `python setup/data/query_all_tables.py --all-schemas` (all schemas)
+  - Usage: `python setup/data/query_all_tables.py --output csv --file results.csv` (CSV output)
 
 ### **Test and Runner Scripts**
 - **`test_tpcds_loader.py`** - Tests the TPC-DS data loader functionality

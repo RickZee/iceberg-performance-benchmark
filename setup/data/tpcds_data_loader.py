@@ -185,13 +185,17 @@ class TPCDSDataLoader:
             # Load AWS configuration
             aws_config = self._load_aws_config()
             
-            # Initialize S3 client
-            s3_client = boto3.client(
-                's3',
-                region_name=aws_config['region'],
-                aws_access_key_id=aws_config['credentials']['access_key_id'],
-                aws_secret_access_key=aws_config['credentials']['secret_access_key']
-            )
+            # Initialize S3 client - use default credential provider if credentials are empty
+            s3_kwargs = {'region_name': aws_config['region']}
+            access_key = aws_config.get('credentials', {}).get('access_key_id', '')
+            if access_key and access_key.strip():
+                s3_kwargs['aws_access_key_id'] = access_key
+                s3_kwargs['aws_secret_access_key'] = aws_config['credentials']['secret_access_key']
+                if aws_config['credentials'].get('session_token'):
+                    s3_kwargs['aws_session_token'] = aws_config['credentials']['session_token']
+            # If no credentials provided, boto3 will use default credential provider chain
+            
+            s3_client = boto3.client('s3', **s3_kwargs)
             
             # Get S3 configuration
             bucket_name = aws_config['s3']['bucket']
@@ -247,16 +251,22 @@ class TPCDSDataLoader:
             # Load AWS configuration
             aws_config = self._load_aws_config()
             
-            # Initialize S3 client
-            s3_client = boto3.client(
-                's3',
-                region_name=aws_config['region'],
-                aws_access_key_id=aws_config['credentials']['access_key_id'],
-                aws_secret_access_key=aws_config['credentials']['secret_access_key']
-            )
+            # Initialize S3 client - use default credential provider if credentials are empty
+            s3_kwargs = {'region_name': aws_config['region']}
+            access_key = aws_config.get('credentials', {}).get('access_key_id', '')
+            if access_key and access_key.strip():
+                s3_kwargs['aws_access_key_id'] = access_key
+                s3_kwargs['aws_secret_access_key'] = aws_config['credentials']['secret_access_key']
+                if aws_config['credentials'].get('session_token'):
+                    s3_kwargs['aws_session_token'] = aws_config['credentials']['session_token']
+            # If no credentials provided, boto3 will use default credential provider chain
             
-            # Get S3 configuration
-            bucket_name = aws_config['s3']['bucket']
+            s3_client = boto3.client('s3', **s3_kwargs)
+            
+            # Get S3 configuration - use the bucket from stage (iceberg-snowflake-perf)
+            # The stage is configured to use iceberg-snowflake-perf, not the config bucket
+            # We need to use the same bucket as the stage
+            bucket_name = 'iceberg-snowflake-perf'  # Match the stage bucket
             
             for table_name, df in data.items():
                 try:
@@ -265,9 +275,11 @@ class TPCDSDataLoader:
                     # Convert DataFrame to Parquet
                     parquet_data = self._dataframe_to_parquet(df)
                     
-                    # Upload to S3 - use exact stage URL path
-                    prefix = aws_config.get('s3_prefix', 'iceberg-performance-test')
-                    s3_key = f"{prefix}/tpcds_external_format/{table_name}_external/data.parquet"
+                    # Upload to S3 - use exact stage URL path (tcp-ds-data/ matches the stage URL)
+                    # Stage URL is s3://iceberg-snowflake-perf/tcp-ds-data/, external table path is tpcds_external_format/{table_name}_external/
+                    # Files should be directly in the directory, not in a subdirectory
+                    # Use table name as filename (Snowflake will read all .parquet files in the directory)
+                    s3_key = f"tcp-ds-data/tpcds_external_format/{table_name}_external/{table_name}.parquet"
                     s3_client.put_object(
                         Bucket=bucket_name,
                         Key=s3_key,
@@ -364,6 +376,7 @@ class TPCDSDataLoader:
     
     def _load_aws_config(self) -> Dict[str, Any]:
         """Load AWS configuration from config file"""
+        import boto3
         try:
             config_path = 'config/aws_config.yaml'
             with open(config_path, 'r') as f:
@@ -378,20 +391,40 @@ class TPCDSDataLoader:
                     return [replace_env_vars(item) for item in obj]
                 elif isinstance(obj, str) and obj.startswith('${') and obj.endswith('}'):
                     env_var = obj[2:-1]
-                    return os.getenv(env_var, obj)
+                    value = os.getenv(env_var, '')
+                    # Return empty string if env var not set, so we can use default provider
+                    return value if value else ''
                 else:
                     return obj
             
-            return replace_env_vars(config)
+            config = replace_env_vars(config)
+            
+            # Use default credential provider chain if credentials not explicitly set or are empty
+            access_key = config.get('credentials', {}).get('access_key_id', '')
+            if not access_key or access_key.strip() == '' or access_key.startswith('${'):
+                # Use credentials from default provider chain
+                session = boto3.Session()
+                credentials = session.get_credentials()
+                if credentials:
+                    config['credentials'] = {
+                        'access_key_id': credentials.access_key,
+                        'secret_access_key': credentials.secret_key,
+                        'session_token': credentials.token if hasattr(credentials, 'token') else None
+                    }
+            
+            return config
         
         except Exception as e:
             logger.error(f"Failed to load AWS configuration: {e}")
-            # Return default configuration
+            # Return default configuration using boto3 credential provider
+            session = boto3.Session()
+            credentials = session.get_credentials()
             return {
-                'region': os.getenv('AWS_REGION', 'us-east-1'),
+                'region': os.getenv('AWS_REGION', session.region_name or 'us-east-1'),
                 'credentials': {
-                    'access_key_id': os.getenv('AWS_ACCESS_KEY_ID', ''),
-                    'secret_access_key': os.getenv('AWS_SECRET_ACCESS_KEY', '')
+                    'access_key_id': credentials.access_key if credentials else '',
+                    'secret_access_key': credentials.secret_key if credentials else '',
+                    'session_token': credentials.token if credentials and hasattr(credentials, 'token') else None
                 },
                 's3': {
                     'bucket': os.getenv('AWS_S3_BUCKET', 'your-bucket-name'),

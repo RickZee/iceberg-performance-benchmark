@@ -28,13 +28,13 @@ spark:
     "spark.executor.memory": "4g"
     "spark.sql.adaptive.enabled": "true"
     "spark.sql.adaptive.coalescePartitions.enabled": "true"
-    "spark.jars.packages": "org.apache.iceberg:iceberg-spark-runtime-3.3_2.12:1.4.2,org.apache.iceberg:iceberg-aws:1.4.2,software.amazon.awssdk:bundle:2.20.66"
+    "spark.jars.packages": "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.4.2,org.apache.iceberg:iceberg-aws:1.4.2,software.amazon.awssdk:bundle:2.20.66"
 
 # JAR files (relative to project root)
-# Note: For Glue 4.0 (Spark 3.3), use Spark 3.3-compatible JARs
+# Note: Using Spark 3.5-compatible JARs for PySpark 3.5.0
 jars:
   - "setup/glue/libs/jars/iceberg-aws-1.4.2.jar"
-  - "setup/glue/libs/jars/iceberg-spark-runtime-3.3_2.12-1.4.2.jar"
+  - "setup/glue/libs/jars/iceberg-spark-runtime-3.5_2.12-1.4.2.jar"
 
 # Logging
 logging:

@@ -81,3 +81,16 @@ tpcds_perf_test/reports/**
 # Terraform outputs
 outputs.txt
 
+# Infrastructure sensitive files (account-specific)
+**/snowflake_iam_values.txt
+**/trust_policy.json
+**/tfplan
+
+# TPC-DS Tools (don't commit zip files or nested tools directories)
+tools/**/*.zip
+tools/tools/
+**/tpcds_tools.zip
+**/*tools*.zip
+# Keep tools/ directory but ignore zip files and nested directories
+!tools/*.sh
+

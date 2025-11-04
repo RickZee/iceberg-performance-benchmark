@@ -16,16 +16,15 @@ def load_snowflake_iam_values():
     values_file = Path(__file__).parent / 'snowflake_iam_values.txt'
     trust_policy_file = Path(__file__).parent / 'trust_policy.json'
     
-    # Try to load from trust_policy.json first
+    # Try to load from trust_policy.json first (preferred - has both external IDs)
     if trust_policy_file.exists():
         with open(trust_policy_file, 'r') as f:
             trust_policy = json.load(f)
-            # Extract values
-            iam_user_arn = trust_policy['Statement'][0]['Principal']['AWS']
-            external_id = None
-            if 'Condition' in trust_policy['Statement'][0]:
-                external_id = trust_policy['Statement'][0]['Condition']['StringEquals'].get('sts:ExternalId')
-            return trust_policy, iam_user_arn, external_id
+            # Extract IAM user ARN (should be the same in all statements)
+            iam_user_arn = None
+            if trust_policy.get('Statement') and len(trust_policy['Statement']) > 0:
+                iam_user_arn = trust_policy['Statement'][0]['Principal']['AWS']
+            return trust_policy, iam_user_arn
     
     # Try to load from values file
     if values_file.exists():
@@ -36,33 +35,83 @@ def load_snowflake_iam_values():
                     key, value = line.strip().split('=', 1)
                     values[key] = value
         iam_user_arn = values.get('SNOWFLAKE_IAM_USER_ARN')
-        external_id = values.get('SNOWFLAKE_EXTERNAL_ID')
+        iceberg_sf_external_id = values.get('ICEBERG_SF_VOLUME_EXTERNAL_ID')
+        iceberg_glue_external_id = values.get('ICEBERG_GLUE_VOLUME_EXTERNAL_ID') or values.get('VOLUME_EXTERNAL_ID')  # Backward compatibility
+        catalog_external_id = values.get('CATALOG_EXTERNAL_ID')
+        storage_integration_external_id = values.get('S3_INTEGRATION_EXTERNAL_ID')
         
         if iam_user_arn:
-            # Generate trust policy
+            # Generate trust policy with all external IDs
+            statements = []
+            
+            if iceberg_sf_external_id:
+                statements.append({
+                    "Effect": "Allow",
+                    "Principal": {"AWS": iam_user_arn},
+                    "Action": "sts:AssumeRole",
+                    "Condition": {
+                        "StringEquals": {
+                            "sts:ExternalId": iceberg_sf_external_id
+                        }
+                    }
+                })
+            
+            if iceberg_glue_external_id:
+                statements.append({
+                    "Effect": "Allow",
+                    "Principal": {"AWS": iam_user_arn},
+                    "Action": "sts:AssumeRole",
+                    "Condition": {
+                        "StringEquals": {
+                            "sts:ExternalId": iceberg_glue_external_id
+                        }
+                    }
+                })
+            
+            if catalog_external_id:
+                statements.append({
+                    "Effect": "Allow",
+                    "Principal": {"AWS": iam_user_arn},
+                    "Action": "sts:AssumeRole",
+                    "Condition": {
+                        "StringEquals": {
+                            "sts:ExternalId": catalog_external_id
+                        }
+                    }
+                })
+            
+            if storage_integration_external_id:
+                statements.append({
+                    "Effect": "Allow",
+                    "Principal": {"AWS": iam_user_arn},
+                    "Action": "sts:AssumeRole",
+                    "Condition": {
+                        "StringEquals": {
+                            "sts:ExternalId": storage_integration_external_id
+                        }
+                    }
+                })
+            
+            if not statements:
+                # Fallback: no external IDs
+                statements.append({
+                    "Effect": "Allow",
+                    "Principal": {"AWS": iam_user_arn},
+                    "Action": "sts:AssumeRole"
+                })
+            
             policy = {
                 "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Effect": "Allow",
-                        "Principal": {
-                            "AWS": iam_user_arn
-                        },
-                        "Action": "sts:AssumeRole",
-                    }
-                ]
+                "Statement": statements
             }
-            if external_id:
-                policy["Statement"][0]["Condition"] = {
-                    "StringEquals": {
-                        "sts:ExternalId": external_id
-                    }
-                }
-            return policy, iam_user_arn, external_id
+            return policy, iam_user_arn
     
     # Try environment variables
     iam_user_arn = os.getenv('SNOWFLAKE_IAM_USER_ARN')
-    external_id = os.getenv('SNOWFLAKE_EXTERNAL_ID')
+    iceberg_sf_external_id = os.getenv('ICEBERG_SF_VOLUME_EXTERNAL_ID')
+    iceberg_glue_external_id = os.getenv('ICEBERG_GLUE_VOLUME_EXTERNAL_ID') or os.getenv('VOLUME_EXTERNAL_ID')  # Backward compatibility
+    catalog_external_id = os.getenv('CATALOG_EXTERNAL_ID')
+    storage_integration_external_id = os.getenv('S3_INTEGRATION_EXTERNAL_ID')
     
     if not iam_user_arn:
         print("❌ Error: Could not find Snowflake IAM user ARN")
@@ -70,27 +119,67 @@ def load_snowflake_iam_values():
         print("or set SNOWFLAKE_IAM_USER_ARN environment variable")
         sys.exit(1)
     
-    # Generate trust policy
+    # Generate trust policy with all external IDs
+    statements = []
+    if iceberg_sf_external_id:
+        statements.append({
+            "Effect": "Allow",
+            "Principal": {"AWS": iam_user_arn},
+            "Action": "sts:AssumeRole",
+            "Condition": {
+                "StringEquals": {
+                    "sts:ExternalId": iceberg_sf_external_id
+                }
+            }
+        })
+    if iceberg_glue_external_id:
+        statements.append({
+            "Effect": "Allow",
+            "Principal": {"AWS": iam_user_arn},
+            "Action": "sts:AssumeRole",
+            "Condition": {
+                "StringEquals": {
+                    "sts:ExternalId": iceberg_glue_external_id
+                }
+            }
+        })
+    if catalog_external_id:
+        statements.append({
+            "Effect": "Allow",
+            "Principal": {"AWS": iam_user_arn},
+            "Action": "sts:AssumeRole",
+            "Condition": {
+                "StringEquals": {
+                    "sts:ExternalId": catalog_external_id
+                }
+            }
+        })
+    
+    if storage_integration_external_id:
+        statements.append({
+            "Effect": "Allow",
+            "Principal": {"AWS": iam_user_arn},
+            "Action": "sts:AssumeRole",
+            "Condition": {
+                "StringEquals": {
+                    "sts:ExternalId": storage_integration_external_id
+                }
+            }
+        })
+    
+    if not statements:
+        statements.append({
+            "Effect": "Allow",
+            "Principal": {"AWS": iam_user_arn},
+            "Action": "sts:AssumeRole"
+        })
+    
     policy = {
         "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Principal": {
-                    "AWS": iam_user_arn
-                },
-                "Action": "sts:AssumeRole",
-            }
-        ]
+        "Statement": statements
     }
-    if external_id:
-        policy["Statement"][0]["Condition"] = {
-            "StringEquals": {
-                "sts:ExternalId": external_id
-            }
-        }
     
-    return policy, iam_user_arn, external_id
+    return policy, iam_user_arn
 
 def get_iam_role_name():
     """Get IAM role name from environment or use default"""
@@ -158,12 +247,25 @@ def main():
     # Load Snowflake IAM values
     print("📥 Loading Snowflake IAM details...")
     try:
-        trust_policy, iam_user_arn, external_id = load_snowflake_iam_values()
+        trust_policy, iam_user_arn = load_snowflake_iam_values()
         print(f"✅ Loaded IAM User ARN: {iam_user_arn}")
-        if external_id:
-            print(f"✅ Loaded External ID: {external_id}")
+        
+        # Count external IDs in trust policy
+        external_id_count = 0
+        if trust_policy.get('Statement'):
+            for stmt in trust_policy['Statement']:
+                if 'Condition' in stmt and 'StringEquals' in stmt['Condition']:
+                    if 'sts:ExternalId' in stmt['Condition']['StringEquals']:
+                        external_id_count += 1
+        
+        if external_id_count > 0:
+            print(f"✅ Loaded trust policy with {external_id_count} external ID(s)")
+            if external_id_count == 2:
+                print("   ✅ Both external IDs included (External Volume + Catalog Integration)")
+            elif external_id_count == 1:
+                print("   ⚠️  Only one external ID found (both are recommended)")
         else:
-            print("⚠️  No External ID found (optional but recommended)")
+            print("⚠️  No External IDs found in trust policy (optional but recommended)")
     except Exception as e:
         print(f"❌ Error loading values: {e}")
         print("\nPlease run 'python3 setup/infrastructure/get_snowflake_iam_details.py' first")

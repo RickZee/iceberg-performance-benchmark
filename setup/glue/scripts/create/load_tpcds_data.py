@@ -92,6 +92,13 @@ def create_spark_session(spark_config):
     
     return spark.getOrCreate()
 
+def format_table_name(catalog_name, database_name, table_name):
+    """Format table name with proper quoting for hyphenated identifiers
+    
+    Based on simple-glue-setup approach: hyphenated names must be quoted with backticks
+    """
+    return f"{catalog_name}.`{database_name}`.`{table_name}`"
+
 def load_parquet_data(spark, data_dir, table_name):
     """Load Parquet data for a specific table"""
     logger = logging.getLogger(__name__)
@@ -116,11 +123,43 @@ def load_data_to_glue_table(spark, df, table_name, glue_config):
     logger = logging.getLogger(__name__)
     
     try:
-        catalog_name = glue_config['glue']['catalog_name']
+        # Use the Spark catalog name from config (glue_catalog) instead of AWS catalog name
+        # IMPORTANT: Use backticks for hyphenated database/table names (from simple-glue-setup)
+        catalog_name = "glue_catalog"  # This matches the Spark config catalog name
         database_name = glue_config['glue']['database_name']
-        full_table_name = f"{catalog_name}.{database_name}.{table_name}"
+        full_table_name = format_table_name(catalog_name, database_name, table_name)
         
         logger.info(f"Loading data into table: {full_table_name}")
+        
+        # Get expected table schema from Glue
+        try:
+            existing_table = spark.table(full_table_name)
+            expected_columns = [f.name for f in existing_table.schema.fields]
+            data_columns = df.columns
+            
+            # Check if columns match
+            if set(expected_columns) != set(data_columns):
+                logger.warning(f"Column mismatch for {table_name}. Expected: {len(expected_columns)}, Got: {len(data_columns)}")
+                # Reorder DataFrame columns to match table schema
+                missing_cols = set(expected_columns) - set(data_columns)
+                extra_cols = set(data_columns) - set(expected_columns)
+                if missing_cols:
+                    logger.warning(f"Missing columns in data: {missing_cols}")
+                if extra_cols:
+                    logger.warning(f"Extra columns in data: {extra_cols}")
+                
+                # Select only columns that exist in both
+                common_cols = [col for col in expected_columns if col in data_columns]
+                if len(common_cols) < len(expected_columns):
+                    logger.error(f"Cannot load {table_name}: Schema mismatch. Common cols: {len(common_cols)}, Expected: {len(expected_columns)}")
+                    return False
+                
+                # Reorder to match expected schema
+                df = df.select(*common_cols)
+                logger.info(f"Reordered columns to match table schema for {table_name}")
+        except Exception as schema_err:
+            # Table doesn't exist or can't be read, will create it
+            logger.info(f"Table may not exist or schema check failed: {schema_err}")
         
         # Create table if missing, else append
         try:
@@ -158,9 +197,12 @@ def main():
         logger.info("✅ Spark session created successfully")
         
         # Load data directory from environment
-        from lib.env import get_tpcds_data_dir
+        import os
+        from pathlib import Path
         
-        data_dir = get_tpcds_data_dir()
+        # Use the data directory we generated
+        project_root = Path(__file__).parent.parent.parent.parent
+        data_dir = project_root / 'data' / 'tpcds_data_sf0.01'
         logger.info(f"Using data directory: {data_dir}")
         
         if not data_dir.exists():
@@ -209,12 +251,14 @@ def main():
         
         # Show final table counts
         logger.info("📊 Final table row counts:")
-        catalog_name = glue_config['glue']['catalog_name']
+        catalog_name = "glue_catalog"  # Use Spark catalog name
         database_name = glue_config['glue']['database_name']
         
         for table_name in tpcds_tables:
             try:
-                count = spark.table(f"{catalog_name}.{database_name}.{table_name}").count()
+                # Use backticks for hyphenated names
+                full_table_name = format_table_name(catalog_name, database_name, table_name)
+                count = spark.table(full_table_name).count()
                 logger.info(f"  {table_name}: {count:,} rows")
             except Exception as e:
                 logger.error(f"  {table_name}: Error getting count - {e}")
