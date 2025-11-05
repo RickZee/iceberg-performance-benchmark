@@ -44,19 +44,24 @@ This application provides automated performance testing, comprehensive metrics c
 ## Directory Structure
 
 ```
-tpcds_perf_test/
+benchmark/
 ├── src/                    # Source code
 │   ├── main.py            # Main application entry point
-│   ├── query_engine.py    # Query execution engine
 │   ├── metrics_collector.py # Performance metrics collection
 │   ├── report_generator.py # Report generation
-│   └── analytics_engine.py # Advanced analytics
+│   ├── analytics_engine.py # Advanced analytics
+│   ├── cost_calculator.py # Cost calculation and analysis
+│   ├── aws_cost_tracker.py # AWS cost tracking
+│   └── ...                # Other modules
 ├── config/                # Configuration files
-│   └── perf_test_config.yaml
-├── results/               # Test results and data
-├── reports/               # Generated reports
-├── logs/                  # Application logs
-└── examples/              # Usage examples
+│   ├── perf_test_config.yaml
+│   └── ...                # Other config files
+├── queries/               # TPC-DS query files (99 per format)
+│   ├── native/
+│   ├── iceberg_sf/
+│   ├── iceberg_glue/
+│   └── external/
+└── logs/                  # Application logs
 ```
 
 ## Quick Start
@@ -74,29 +79,29 @@ pip install pandas matplotlib seaborn scipy numpy pyyaml psutil
 Copy and modify the configuration file:
 
 ```bash
-cp tpcds_perf_test/config/perf_test_config.yaml tpcds_perf_test/config/my_config.yaml
+cp benchmark/config/perf_test_config.yaml benchmark/config/my_config.yaml
 ```
 
 ### 3. Run Tests
 
 #### Quick Test (5 queries per format)
 ```bash
-python tpcds_perf_test/src/main.py --test-mode
+python benchmark/src/main.py --test-mode
 ```
 
 #### Standard Test (20 queries per format)
 ```bash
-python tpcds_perf_test/src/main.py --formats native iceberg_sf
+python benchmark/src/main.py --formats native iceberg_sf
 ```
 
 #### Comprehensive Test (all 99 queries)
 ```bash
-python tpcds_perf_test/src/main.py
+python benchmark/src/main.py
 ```
 
-#### Custom Query Range
+#### Custom Query Range (e.g., first 5 queries)
 ```bash
-python tpcds_perf_test/src/main.py --query-range 1 10
+python benchmark/src/main.py --query-range 1 5
 ```
 
 ## Configuration Options
@@ -126,10 +131,10 @@ python tpcds_perf_test/src/main.py --query-range 1 10
 ### Basic Performance Test
 
 ```python
-from tpcds_perf_test.src.main import TPCDSPerformanceTester
+from benchmark.src.main import TPCDSPerformanceTester
 
 # Initialize tester
-tester = TPCDSPerformanceTester("tpcds_perf_test/config/perf_test_config.yaml")
+tester = TPCDSPerformanceTester("benchmark/config/perf_test_config.yaml")
 
 # Run comprehensive test
 results = tester.run_performance_test()
@@ -151,7 +156,7 @@ results = tester.run_performance_test(query_range=(1, 20))
 ### Advanced Analytics
 
 ```python
-from tpcds_perf_test.src.analytics_engine import AnalyticsEngine
+from benchmark.src.analytics_engine import AnalyticsEngine
 
 # Generate comprehensive analytics
 analytics_engine = AnalyticsEngine(config, metrics_collector)
@@ -166,7 +171,7 @@ recommendations = analytics['recommendations']
 ### Metrics Collection
 
 ```python
-from tpcds_perf_test.src.metrics_collector import PerformanceMetricsCollector
+from benchmark.src.metrics_collector import PerformanceMetricsCollector
 
 # Initialize metrics collector
 metrics_collector = PerformanceMetricsCollector(config, results_dir)
@@ -199,6 +204,9 @@ summary = metrics_collector.get_metrics_summary(format_name='native')
 
 ### CSV Reports
 - Raw performance data
+- Cost metrics (compute_credits, compute_cost_usd, storage_cost_usd, s3_storage_cost_usd, s3_request_cost_usd, glue_cost_usd, data_transfer_cost_usd, total_cost_usd)
+- Warehouse size information
+- Bytes scanned
 - Suitable for external analysis
 - Import into Excel/Tableau
 - Time-series data
@@ -224,6 +232,19 @@ summary = metrics_collector.get_metrics_summary(format_name='native')
 - Disk I/O
 - Network I/O
 - Resource utilization trends
+
+### Cost Metrics
+- **Compute Credits**: Snowflake compute credits consumed per query
+- **Compute Cost**: Cost in USD based on warehouse size and execution time
+- **Storage Cost**: Snowflake storage costs (native format)
+- **S3 Storage Cost**: AWS S3 storage costs (external formats)
+- **S3 Request Cost**: GET, PUT, LIST request costs
+- **Glue Catalog Cost**: AWS Glue metadata storage and API call costs
+- **Data Transfer Cost**: Cross-region data transfer costs
+- **Total Cost**: Sum of all cost components
+- **Cost per Query**: Average cost per query execution
+- **Cost per Second**: Cost efficiency metric
+- **Warehouse Size**: Warehouse size used for cost calculation
 
 ## Analytics Features
 
@@ -251,20 +272,22 @@ summary = metrics_collector.get_metrics_summary(format_name='native')
 
 ```bash
 # Show help
-python tpcds_perf_test/src/main.py --help
+python benchmark/src/main.py --help
 
 # Test specific formats
-python tpcds_perf_test/src/main.py --formats native iceberg_sf
+python benchmark/src/main.py --formats native iceberg_sf
 
-# Test query range
-python tpcds_perf_test/src/main.py --query-range 1 20
+# Test query range (e.g., queries 1-5)
+python benchmark/src/main.py --query-range 1 5
 
 # Use custom config
-python tpcds_perf_test/src/main.py --config my_config.yaml
+python benchmark/src/main.py --config benchmark/config/my_config.yaml
 
-# Quick test mode
-python tpcds_perf_test/src/main.py --test-mode
+# Quick test mode (5 queries per format)
+python benchmark/src/main.py --test-mode
 ```
+
+**Note**: The correct path is `benchmark/src/main.py` (not `tpcds_perf_test/src/main.py`).
 
 ## Configuration Reference
 
@@ -338,10 +361,10 @@ The application categorizes TPC-DS queries into groups for analysis:
 
 ### Log Files
 
-Application logs are stored in `tpcds_perf_test/logs/`:
+Application logs are stored in `benchmark/logs/`:
 - `tpcds_perf_test.log`: Main application log
-- `query_execution.log`: Query execution details
-- `metrics_collection.log`: Metrics collection log
+- Query execution details are logged to the main log file
+- Metrics collection details are included in the main log
 
 ## Contributing
 

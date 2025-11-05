@@ -330,6 +330,14 @@ class TPCDSPerformanceTester:
         self.start_time = None
         self.end_time = None
         
+        # Initialize Cost Calculator
+        try:
+            from benchmark.src.cost_calculator import CostCalculator
+            self.cost_calculator = CostCalculator(self.config)
+        except ImportError:
+            logger.warning("Cost calculator not available, cost metrics will be estimated")
+            self.cost_calculator = None
+        
         # Initialize AWS cost tracker
         if AWSCostTracker:
             try:
@@ -567,7 +575,8 @@ class TPCDSPerformanceTester:
             warehouse_size = 'X-Small'  # Default
             if snowflake_metrics_list and snowflake_metrics_list[0]:
                 warehouse_info = snowflake_metrics_list[0]
-                warehouse_size = warehouse_info.get('WAREHOUSE_SIZE', warehouse_info.get('warehouse_size', 'X-Small'))
+                # The metrics dict directly contains WAREHOUSE_SIZE
+                warehouse_size = warehouse_info.get('WAREHOUSE_SIZE') or warehouse_info.get('warehouse_size') or 'X-Small'
             
             # Determine status
             if errors:
@@ -578,19 +587,45 @@ class TPCDSPerformanceTester:
             else:
                 status = 'success'
             
-            # Get AWS cost data for external formats
+            # Get AWS cost data for external formats (estimate without accessing S3)
             aws_cost_data = {}
-            if self.aws_cost_tracker and format_name in ['iceberg_glue', 'external', 'iceberg_sf']:
+            if format_name in ['iceberg_glue', 'external', 'iceberg_sf']:
                 try:
-                    # Estimate S3 requests based on bytes scanned
+                    # Estimate S3 requests based on bytes scanned (no S3 access needed)
                     bytes_scanned = int(avg_bytes_scanned_mb * 1024 * 1024)
-                    s3_requests = self.aws_cost_tracker.estimate_query_s3_requests(format_name, bytes_scanned)
                     
-                    # Get format-specific S3 usage
-                    s3_usage = self.aws_cost_tracker.get_format_s3_usage(format_name)
+                    # Estimate S3 requests: assume 1 GET per 64MB chunk scanned
+                    # For Iceberg: typically 1-2 GET requests per query for metadata, plus data reads
+                    # For external: more GET requests for data access
+                    if format_name == 'iceberg_glue':
+                        # Iceberg Glue: metadata calls + data reads
+                        # Estimate: ~10-20 GET requests per query (metadata + data), 1 LIST for partition discovery
+                        estimated_gets = max(10, int(bytes_scanned / (64 * 1024 * 1024)) + 15)  # At least 10 for metadata
+                        estimated_lists = 1
+                        estimated_puts = 0
+                    elif format_name == 'iceberg_sf':
+                        # Iceberg SF: fewer metadata calls (managed by Snowflake)
+                        estimated_gets = max(5, int(bytes_scanned / (64 * 1024 * 1024)) + 5)
+                        estimated_lists = 1
+                        estimated_puts = 0
+                    else:  # external
+                        # External tables: more GET requests for data access
+                        estimated_gets = max(20, int(bytes_scanned / (64 * 1024 * 1024)) + 20)
+                        estimated_lists = 2
+                        estimated_puts = 0
+                    
+                    s3_requests = {
+                        'get': estimated_gets,
+                        'put': estimated_puts,
+                        'list': estimated_lists
+                    }
+                    
+                    # Estimate S3 storage based on bytes scanned and format
+                    # Assume storage is roughly 2-3x the scanned data (compression + metadata)
+                    estimated_storage_gb = (avg_bytes_scanned_mb * 2.5) / 1024  # 2.5x multiplier for storage
                     
                     aws_cost_data = {
-                        's3_storage_gb': s3_usage.get('total_size_gb', 0),
+                        's3_storage_gb': estimated_storage_gb,
                         's3_requests': s3_requests,
                         's3_storage_class': 'STANDARD',
                         'data_transferred_gb': avg_bytes_scanned_mb / 1024,  # Approximate
@@ -598,14 +633,43 @@ class TPCDSPerformanceTester:
                     }
                     
                     if format_name == 'iceberg_glue':
-                        glue_calls = self.aws_cost_tracker.get_glue_api_calls()
+                        # Estimate Glue API calls: typically 1-2 GetTable calls per query
+                        # Estimate metadata storage: very small, ~0.001 TB per table
+                        estimated_glue_gets = 2  # GetTable + GetDatabase
+                        estimated_glue_create_update = 0  # Only during table creation
+                        estimated_metadata_tb = 0.001  # Very small metadata storage
+                        
                         aws_cost_data['glue_api_calls'] = {
-                            'get': glue_calls.get('GetTable', 0) + glue_calls.get('GetDatabase', 0),
-                            'create_update': glue_calls.get('CreateTable', 0) + glue_calls.get('UpdateTable', 0)
+                            'get': estimated_glue_gets,
+                            'create_update': estimated_glue_create_update
                         }
-                        aws_cost_data['glue_metadata_storage_tb'] = self.aws_cost_tracker.get_glue_metadata_storage()
+                        aws_cost_data['glue_metadata_storage_tb'] = estimated_metadata_tb
                 except Exception as e:
-                    logger.warning(f"Failed to get AWS cost data: {e}")
+                    logger.warning(f"Failed to estimate AWS cost data: {e}")
+            
+            # Calculate comprehensive cost metrics using CostCalculator
+            cost_breakdown = {}
+            if self.cost_calculator and status == 'success':
+                query_metrics_for_cost = {
+                    'warehouse_size': warehouse_size,
+                    'execution_time_seconds': avg_time,
+                    'average_time': avg_time,
+                    'bytes_scanned': int(avg_bytes_scanned_mb * 1024 * 1024) if avg_bytes_scanned_mb > 0 else 0,
+                    **aws_cost_data
+                }
+                cost_breakdown = self.cost_calculator.calculate_total_query_cost(query_metrics_for_cost, format_name)
+            else:
+                # Fallback calculation if cost calculator not available
+                if status == 'success' and avg_time > 0:
+                    multipliers = {'X-Small': 1, 'Small': 2, 'Medium': 4, 'Large': 8}
+                    multiplier = multipliers.get(warehouse_size, 1)
+                    compute_credits = (multiplier * avg_time) / 3600.0
+                    compute_cost = compute_credits * 3.0
+                    cost_breakdown = {
+                        'compute_credits': compute_credits,
+                        'compute_cost_usd': compute_cost,
+                        'total_cost_usd': compute_cost
+                    }
             
             # Prepare result with warehouse size and execution time for cost tracking
             result = {
@@ -626,6 +690,8 @@ class TPCDSPerformanceTester:
                 'success_rate': (test_runs - len(errors)) / test_runs if test_runs > 0 else 0,
                 'timestamp': datetime.now().isoformat(),
                 'warehouse_size': warehouse_size,  # For cost calculation
+                # Comprehensive cost breakdown
+                **cost_breakdown,
                 # AWS cost data (for external formats)
                 **aws_cost_data,
                 # Snowflake native metrics
@@ -711,6 +777,23 @@ class TPCDSPerformanceTester:
         
         for format_name, format_results in self.results.items():
             for result in format_results:
+                # Extract all cost metrics from query result (already calculated by CostCalculator)
+                warehouse_size = result.get('warehouse_size', 'X-Small') or 'X-Small'
+                compute_credits = result.get('compute_credits', 0)
+                compute_cost_usd = result.get('compute_cost_usd', 0)
+                storage_cost_usd = result.get('storage_cost_usd', 0)
+                s3_storage_cost_usd = result.get('s3_storage_cost_usd', 0)
+                s3_request_cost_usd = result.get('s3_request_cost_usd', 0)
+                glue_cost_usd = result.get('glue_cost_usd', 0)
+                data_transfer_cost_usd = result.get('data_transfer_cost_usd', 0)
+                total_cost_usd = result.get('total_cost_usd', compute_cost_usd)
+                
+                # Get bytes scanned from snowflake metrics
+                bytes_scanned = 0
+                if 'snowflake_metrics' in result and result['snowflake_metrics']:
+                    snowflake_metrics = result['snowflake_metrics']
+                    bytes_scanned = snowflake_metrics.get('avg_bytes_scanned_mb', 0) * 1024 * 1024
+                
                 rows.append({
                     'format': format_name,
                     'query_number': result['query_number'],
@@ -723,6 +806,16 @@ class TPCDSPerformanceTester:
                     'average_rows': result['average_rows'],
                     'error_count': result['error_count'],
                     'success_rate': result['success_rate'],
+                    'warehouse_size': warehouse_size,
+                    'compute_credits': compute_credits,
+                    'compute_cost_usd': compute_cost_usd,
+                    'storage_cost_usd': storage_cost_usd,
+                    's3_storage_cost_usd': s3_storage_cost_usd,
+                    's3_request_cost_usd': s3_request_cost_usd,
+                    'glue_cost_usd': glue_cost_usd,
+                    'data_transfer_cost_usd': data_transfer_cost_usd,
+                    'total_cost_usd': total_cost_usd,
+                    'bytes_scanned': bytes_scanned,
                     'timestamp': result['timestamp']
                 })
         
@@ -779,6 +872,9 @@ class TPCDSPerformanceTester:
         .comparison-table {{ margin: 20px 0; }}
         .recommendations {{ background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107; }}
         .snowflake-metrics {{ background-color: #d1ecf1; padding: 10px; border-radius: 3px; margin: 5px 0; }}
+        .cost-value {{ font-weight: bold; color: #e65100; font-size: 1.05em; }}
+        .cost-header {{ background-color: #ff9800 !important; color: white !important; }}
+        .cost-section {{ background-color: #fff3e0; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ff9800; }}
         h1, h2, h3 {{ color: #2c3e50; }}
         .highlight {{ background-color: #fff3cd; padding: 2px 4px; border-radius: 3px; }}
     </style>
@@ -840,12 +936,24 @@ class TPCDSPerformanceTester:
                     <th>Snowflake Std Dev</th>
                     <th>Bytes Scanned (MB)</th>
                     <th>Cache Hit Ratio</th>
+                    <th>Warehouse Size</th>
+                    <th>Total Credits</th>
+                    <th>Total Cost ($)</th>
+                    <th>Avg Cost/Query ($)</th>
                 </tr>
 """
         
         # Add format comparison data
         for format_name, format_data in analytics['format_comparison'].items():
             snowflake_metrics = format_data.get('snowflake_metrics', {})
+            cost_metrics = format_data.get('cost_metrics', {})
+            
+            # Get cost metrics from analytics (already calculated)
+            total_credits = cost_metrics.get('total_credits', 0)
+            total_cost = cost_metrics.get('total_cost_usd', 0)
+            avg_cost_per_query = cost_metrics.get('avg_cost_per_query_usd', 0)
+            warehouse_size = cost_metrics.get('warehouse_size', 'X-Small') or 'X-Small'
+            
             html += f"""
                 <tr>
                     <td><strong>{format_name}</strong></td>
@@ -861,6 +969,91 @@ class TPCDSPerformanceTester:
                     <td class="snowflake-metrics">{snowflake_metrics.get('std_execution_time_ms', 0):.1f}</td>
                     <td>{snowflake_metrics.get('avg_bytes_scanned_mb', 0):.2f}</td>
                     <td>{snowflake_metrics.get('avg_cache_hit_ratio', 0):.1%}</td>
+                    <td>{warehouse_size}</td>
+                    <td>{total_credits:.6f}</td>
+                    <td><strong>${total_cost:.6f}</strong></td>
+                    <td>${avg_cost_per_query:.8f}</td>
+                </tr>
+"""
+        
+        html += """
+            </table>
+        </div>
+        
+        <h3>💰 Cost Analysis Summary</h3>
+        <div class="comparison-table">
+            <table>
+                <tr>
+                    <th>Format</th>
+                    <th>Total Queries</th>
+                    <th>Warehouse Size</th>
+                    <th>Total Compute Credits</th>
+                    <th>Total Cost ($)</th>
+                    <th>Avg Cost per Query ($)</th>
+                    <th>Cost per Second ($)</th>
+                </tr>
+"""
+        
+        # Display cost summary from analytics
+        for format_name, format_data in analytics['format_comparison'].items():
+            cost_metrics = format_data.get('cost_metrics', {})
+            format_results = self.results.get(format_name, [])
+            
+            total_credits = cost_metrics.get('total_credits', 0)
+            total_cost = cost_metrics.get('total_cost_usd', 0)
+            avg_cost_per_query = cost_metrics.get('avg_cost_per_query_usd', 0)
+            warehouse_size = cost_metrics.get('warehouse_size', 'X-Small') or 'X-Small'
+            
+            # Calculate cost per second
+            total_exec_time = sum(r.get('average_time', 0) for r in format_results if r.get('status') == 'success')
+            cost_per_second = total_cost / total_exec_time if total_exec_time > 0 else 0
+            
+            html += f"""
+                <tr>
+                    <td><strong>{format_name}</strong></td>
+                    <td>{len(format_results)}</td>
+                    <td>{warehouse_size}</td>
+                    <td>{total_credits:.6f}</td>
+                    <td><strong>${total_cost:.6f}</strong></td>
+                    <td>${avg_cost_per_query:.8f}</td>
+                    <td>${cost_per_second:.8f}</td>
+                </tr>
+"""
+        
+        html += """
+            </table>
+        </div>
+        
+        <h3>💰 Detailed Cost Breakdown by Format</h3>
+        <div class="comparison-table">
+            <table>
+                <tr>
+                    <th>Format</th>
+                    <th>Compute Cost ($)</th>
+                    <th>Storage Cost ($)</th>
+                    <th>S3 Storage Cost ($)</th>
+                    <th>S3 Request Cost ($)</th>
+                    <th>Glue Cost ($)</th>
+                    <th>Data Transfer Cost ($)</th>
+                    <th>Total Cost ($)</th>
+                </tr>
+"""
+        
+        # Display detailed cost breakdown
+        for format_name, format_data in analytics['format_comparison'].items():
+            cost_metrics = format_data.get('cost_metrics', {})
+            cost_breakdown = cost_metrics.get('cost_breakdown', {})
+            
+            html += f"""
+                <tr>
+                    <td><strong>{format_name}</strong></td>
+                    <td>${cost_breakdown.get('compute_cost_usd', 0):.6f}</td>
+                    <td>${cost_breakdown.get('storage_cost_usd', 0):.6f}</td>
+                    <td>${cost_breakdown.get('s3_storage_cost_usd', 0):.6f}</td>
+                    <td>${cost_breakdown.get('s3_request_cost_usd', 0):.6f}</td>
+                    <td>${cost_breakdown.get('glue_cost_usd', 0):.6f}</td>
+                    <td>${cost_breakdown.get('data_transfer_cost_usd', 0):.6f}</td>
+                    <td class="cost-value"><strong>${cost_metrics.get('total_cost_usd', 0):.6f}</strong></td>
                 </tr>
 """
         
@@ -1004,12 +1197,22 @@ class TPCDSPerformanceTester:
                 <th>Rows Produced</th>
                 <th>Bytes Scanned (MB)</th>
                 <th>Success Rate</th>
+                <th class="cost-header">Warehouse</th>
+                <th class="cost-header">Credits</th>
+                <th class="cost-header">Cost ($)</th>
             </tr>
 """
             
             for result in format_results:
                 status_class = result['status']
                 sf_metrics = result.get('snowflake_metrics', {})
+                
+                # Extract cost metrics from result (already calculated by CostCalculator)
+                wh_size = result.get('warehouse_size', 'X-Small') or 'X-Small'
+                compute_credits = result.get('compute_credits', 0)
+                compute_cost = result.get('compute_cost_usd', 0)
+                total_cost = result.get('total_cost_usd', compute_cost)
+                
                 html += f"""
             <tr>
                 <td>{result['query_file']}</td>
@@ -1022,6 +1225,9 @@ class TPCDSPerformanceTester:
                 <td>{result['average_rows']:.0f}</td>
                 <td>{sf_metrics.get('avg_bytes_scanned_mb', 0):.2f}</td>
                 <td>{result['success_rate']:.2%}</td>
+                <td>{wh_size}</td>
+                <td>{compute_credits:.6f}</td>
+                <td class="cost-value">${total_cost:.8f}</td>
             </tr>
 """
             
@@ -1162,6 +1368,45 @@ class TPCDSPerformanceTester:
                         'avg_bytes_scanned_mb': statistics.mean(bytes_scanned) if bytes_scanned else 0,
                         'total_bytes_scanned_mb': sum(bytes_scanned) if bytes_scanned else 0
                     }
+                
+                # Calculate comprehensive cost metrics
+                total_compute_credits = 0
+                total_compute_cost = 0
+                total_storage_cost = 0
+                total_s3_storage_cost = 0
+                total_s3_request_cost = 0
+                total_glue_cost = 0
+                total_data_transfer_cost = 0
+                warehouse_size = 'X-Small'
+                
+                for result in successful_results:
+                    total_compute_credits += result.get('compute_credits', 0)
+                    total_compute_cost += result.get('compute_cost_usd', 0)
+                    total_storage_cost += result.get('storage_cost_usd', 0)
+                    total_s3_storage_cost += result.get('s3_storage_cost_usd', 0)
+                    total_s3_request_cost += result.get('s3_request_cost_usd', 0)
+                    total_glue_cost += result.get('glue_cost_usd', 0)
+                    total_data_transfer_cost += result.get('data_transfer_cost_usd', 0)
+                    # Get warehouse size from first successful result
+                    if warehouse_size == 'X-Small' and result.get('warehouse_size'):
+                        warehouse_size = result.get('warehouse_size', 'X-Small')
+                
+                total_cost = total_compute_cost + total_storage_cost + total_s3_storage_cost + total_s3_request_cost + total_glue_cost + total_data_transfer_cost
+                
+                format_data['cost_metrics'] = {
+                    'total_credits': total_compute_credits,
+                    'total_cost_usd': total_cost,
+                    'avg_cost_per_query_usd': total_cost / len(successful_results) if successful_results else 0,
+                    'warehouse_size': warehouse_size,
+                    'cost_breakdown': {
+                        'compute_cost_usd': total_compute_cost,
+                        'storage_cost_usd': total_storage_cost,
+                        's3_storage_cost_usd': total_s3_storage_cost,
+                        's3_request_cost_usd': total_s3_request_cost,
+                        'glue_cost_usd': total_glue_cost,
+                        'data_transfer_cost_usd': total_data_transfer_cost
+                    }
+                }
                 
                 analytics['format_comparison'][format_name] = format_data
         

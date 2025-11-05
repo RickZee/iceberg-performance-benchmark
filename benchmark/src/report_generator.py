@@ -93,6 +93,30 @@ class ReportGenerator:
         
         for format_name, format_results in test_results.items():
             for result in format_results:
+                # Extract cost metrics from query result
+                compute_credits = 0.0
+                compute_cost_usd = 0.0
+                bytes_scanned = 0
+                
+                # Try to get from direct result fields
+                if 'compute_credits' in result:
+                    compute_credits = result.get('compute_credits', 0)
+                elif 'snowflake_metrics' in result and result['snowflake_metrics']:
+                    # Calculate from warehouse size and execution time if available
+                    snowflake_metrics = result['snowflake_metrics']
+                    if 'warehouse_info' in snowflake_metrics and snowflake_metrics['warehouse_info']:
+                        wh_info = snowflake_metrics['warehouse_info']
+                        warehouse_size = wh_info.get('WAREHOUSE_SIZE', result.get('warehouse_size', 'X-Small'))
+                        exec_time = result.get('average_time', 0)
+                        if exec_time > 0:
+                            # Calculate credits (simplified - should use CostCalculator)
+                            multipliers = {'X-Small': 1, 'Small': 2, 'Medium': 4, 'Large': 8}
+                            multiplier = multipliers.get(warehouse_size, 1)
+                            compute_credits = (multiplier * exec_time) / 3600.0
+                            compute_cost_usd = compute_credits * 3.0  # $3 per credit
+                    
+                    bytes_scanned = snowflake_metrics.get('avg_bytes_scanned_mb', 0) * 1024 * 1024
+                
                 rows.append({
                     'format': format_name,
                     'query_number': result['query_number'],
@@ -111,6 +135,9 @@ class ReportGenerator:
                     'total_runs': result.get('total_runs', 0),
                     'successful_runs': result.get('successful_runs', 0),
                     'warehouse_size': result.get('warehouse_size', ''),
+                    'compute_credits': compute_credits,
+                    'compute_cost_usd': compute_cost_usd,
+                    'bytes_scanned': bytes_scanned,
                     'timestamp': result.get('timestamp', '')
                 })
         
