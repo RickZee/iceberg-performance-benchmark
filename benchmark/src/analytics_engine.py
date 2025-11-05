@@ -15,6 +15,15 @@ import pandas as pd
 from scipy import stats
 from collections import defaultdict
 
+# Import cost calculator
+try:
+    from .cost_calculator import CostCalculator
+except ImportError:
+    try:
+        from cost_calculator import CostCalculator
+    except ImportError:
+        CostCalculator = None
+
 logger = logging.getLogger(__name__)
 
 class AnalyticsEngine:
@@ -25,6 +34,12 @@ class AnalyticsEngine:
         self.config = config
         self.metrics_collector = metrics_collector
         self.analytics_cache = {}
+        
+        # Initialize cost calculator if available
+        if CostCalculator:
+            self.cost_calculator = CostCalculator(config)
+        else:
+            self.cost_calculator = None
         
     def generate_comprehensive_analytics(self, test_results: Dict[str, Any]) -> Dict[str, Any]:
         """Generate comprehensive analytics"""
@@ -40,7 +55,8 @@ class AnalyticsEngine:
             'anomaly_detection': self._detect_anomalies(test_results),
             'correlation_analysis': self._analyze_correlations(test_results),
             'recommendations': self._generate_analytics_recommendations(test_results),
-            'benchmarking': self._generate_benchmark_analysis(test_results)
+            'benchmarking': self._generate_benchmark_analysis(test_results),
+            'cost_analysis': self.analyze_costs(test_results) if self.cost_calculator else {}
         }
         
         return analytics
@@ -1008,11 +1024,12 @@ class AnalyticsEngine:
             
             if format_rankings:
                 avg_rank = np.mean([r['rank'] for r in format_rankings])
+                max_rank = max(r['rank'] for r in format_rankings) if format_rankings else 0
                 detailed_comparison['format_rankings_per_query'][format_name] = {
                     'average_rank': avg_rank,
                     'rankings': format_rankings,
                     'best_rank_count': sum(1 for r in format_rankings if r['rank'] == 1),
-                    'worst_rank_count': sum(1 for r in format_rankings if r['rank'] == len(format_rankings[0]) if format_rankings else 0)
+                    'worst_rank_count': sum(1 for r in format_rankings if r['rank'] == max_rank) if max_rank > 0 else 0
                 }
         
         # Identify optimization opportunities
@@ -1038,3 +1055,280 @@ class AnalyticsEngine:
                 })
         
         return detailed_comparison
+    
+    def analyze_costs(self, test_results: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze costs across formats and queries"""
+        
+        if not self.cost_calculator:
+            return {'error': 'Cost calculator not available'}
+        
+        cost_analysis = {
+            'cost_per_format': self._calculate_cost_per_format(test_results),
+            'cost_per_query': self._calculate_cost_per_query(test_results),
+            'cost_comparison': self._compare_format_costs(test_results),
+            'cost_optimization_opportunities': self._identify_cost_optimization_opportunities(test_results),
+            'cost_performance_ratio': self._analyze_cost_performance_ratio(test_results),
+            'total_costs': self._calculate_total_costs(test_results)
+        }
+        
+        return cost_analysis
+    
+    def _calculate_cost_per_format(self, test_results: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate total and average costs per format"""
+        
+        format_costs = {}
+        
+        for format_name, format_results in test_results.items():
+            costs = []
+            total_cost = 0.0
+            total_credits = 0.0
+            
+            for result in format_results:
+                if result.get('status') == 'success':
+                    warehouse_size = result.get('warehouse_size', 'X-Small')
+                    execution_time = result.get('average_time', 0)
+                    
+                    if execution_time > 0:
+                        # Calculate cost
+                        cost_breakdown = self.cost_calculator.calculate_total_query_cost({
+                            'warehouse_size': warehouse_size,
+                            'execution_time_seconds': execution_time,
+                            'storage_bytes': result.get('storage_bytes', 0),
+                            's3_storage_gb': result.get('s3_storage_gb', 0),
+                            's3_storage_class': result.get('s3_storage_class', 'STANDARD'),
+                            's3_requests': result.get('s3_requests', {}),
+                            'glue_api_calls': result.get('glue_api_calls', {}),
+                            'glue_metadata_storage_tb': result.get('glue_metadata_storage_tb', 0.0),
+                            'data_transferred_gb': result.get('data_transferred_gb', 0),
+                            'same_region': result.get('same_region', True)
+                        }, format_name)
+                        
+                        costs.append(cost_breakdown)
+                        total_cost += cost_breakdown['total_cost_usd']
+                        total_credits += cost_breakdown['compute_credits']
+            
+            if costs:
+                format_costs[format_name] = {
+                    'total_cost_usd': total_cost,
+                    'total_credits': total_credits,
+                    'avg_cost_per_query_usd': total_cost / len(costs),
+                    'total_queries': len(costs),
+                    'cost_breakdown': {
+                        'compute_cost_usd': sum(c['compute_cost_usd'] for c in costs),
+                        'storage_cost_usd': sum(c['storage_cost_usd'] for c in costs),
+                        's3_storage_cost_usd': sum(c['s3_storage_cost_usd'] for c in costs),
+                        's3_request_cost_usd': sum(c['s3_request_cost_usd'] for c in costs),
+                        'glue_cost_usd': sum(c['glue_cost_usd'] for c in costs)
+                    }
+                }
+            else:
+                format_costs[format_name] = {
+                    'total_cost_usd': 0,
+                    'total_credits': 0,
+                    'avg_cost_per_query_usd': 0,
+                    'total_queries': 0,
+                    'cost_breakdown': {}
+                }
+        
+        return format_costs
+    
+    def _calculate_cost_per_query(self, test_results: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+        """Calculate cost per query across formats"""
+        
+        query_costs = {}
+        
+        # Collect query data across formats
+        query_data = defaultdict(dict)
+        
+        for format_name, format_results in test_results.items():
+            for result in format_results:
+                query_num = result['query_number']
+                if result.get('status') == 'success':
+                    warehouse_size = result.get('warehouse_size', 'X-Small')
+                    execution_time = result.get('average_time', 0)
+                    
+                    if execution_time > 0:
+                        cost_breakdown = self.cost_calculator.calculate_total_query_cost({
+                            'warehouse_size': warehouse_size,
+                            'execution_time_seconds': execution_time,
+                            'storage_bytes': result.get('storage_bytes', 0),
+                            's3_storage_gb': result.get('s3_storage_gb', 0),
+                            's3_storage_class': result.get('s3_storage_class', 'STANDARD'),
+                            's3_requests': result.get('s3_requests', {}),
+                            'glue_api_calls': result.get('glue_api_calls', {}),
+                            'glue_metadata_storage_tb': result.get('glue_metadata_storage_tb', 0.0),
+                            'data_transferred_gb': result.get('data_transferred_gb', 0),
+                            'same_region': result.get('same_region', True)
+                        }, format_name)
+                        
+                        query_data[query_num][format_name] = cost_breakdown
+        
+        # Organize by query
+        for query_num, format_costs in query_data.items():
+            if format_costs:
+                cheapest_format = min(format_costs.items(), key=lambda x: x[1]['total_cost_usd'])[0]
+                most_expensive_format = max(format_costs.items(), key=lambda x: x[1]['total_cost_usd'])[0]
+                cost_range = max(c['total_cost_usd'] for c in format_costs.values()) - min(c['total_cost_usd'] for c in format_costs.values())
+            else:
+                cheapest_format = None
+                most_expensive_format = None
+                cost_range = 0
+            
+            query_costs[f"query_{query_num}"] = {
+                'query_number': query_num,
+                'format_costs': format_costs,
+                'cheapest_format': cheapest_format,
+                'most_expensive_format': most_expensive_format,
+                'cost_range': cost_range
+            }
+        
+        return query_costs
+    
+    def _compare_format_costs(self, test_results: Dict[str, Any]) -> Dict[str, Any]:
+        """Compare costs across formats"""
+        
+        format_costs = self._calculate_cost_per_format(test_results)
+        
+        if not format_costs:
+            return {}
+        
+        # Find cheapest and most expensive formats
+        cheapest_format = min(format_costs.items(), key=lambda x: x[1]['total_cost_usd'])
+        most_expensive_format = max(format_costs.items(), key=lambda x: x[1]['total_cost_usd'])
+        
+        # Calculate cost differences
+        cost_differences = {}
+        for format1, cost1 in format_costs.items():
+            for format2, cost2 in format_costs.items():
+                if format1 != format2:
+                    diff = cost1['total_cost_usd'] - cost2['total_cost_usd']
+                    cost_differences[f"{format1}_vs_{format2}"] = {
+                        'difference_usd': diff,
+                        'percentage_difference': (diff / cost2['total_cost_usd'] * 100) if cost2['total_cost_usd'] > 0 else 0
+                    }
+        
+        return {
+            'format_costs': format_costs,
+            'cheapest_format': cheapest_format[0],
+            'most_expensive_format': most_expensive_format[0],
+            'cost_differences': cost_differences,
+            'cost_savings_potential': {
+                'format': most_expensive_format[0],
+                'potential_savings_usd': most_expensive_format[1]['total_cost_usd'] - cheapest_format[1]['total_cost_usd'],
+                'potential_savings_percentage': ((most_expensive_format[1]['total_cost_usd'] - cheapest_format[1]['total_cost_usd']) / most_expensive_format[1]['total_cost_usd'] * 100) if most_expensive_format[1]['total_cost_usd'] > 0 else 0
+            }
+        }
+    
+    def _identify_cost_optimization_opportunities(self, test_results: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Identify cost optimization opportunities"""
+        
+        opportunities = []
+        
+        # Analyze high-cost queries
+        query_costs = self._calculate_cost_per_query(test_results)
+        
+        # Sort queries by cost
+        sorted_queries = sorted(
+            query_costs.items(),
+            key=lambda x: max(c['total_cost_usd'] for c in x[1].get('format_costs', {}).values()) if x[1].get('format_costs') else 0,
+            reverse=True
+        )
+        
+        # Top 10 most expensive queries
+        for query_key, query_data in sorted_queries[:10]:
+            if query_data.get('format_costs'):
+                max_cost = max(c['total_cost_usd'] for c in query_data['format_costs'].values())
+                min_cost = min(c['total_cost_usd'] for c in query_data['format_costs'].values())
+                
+                if max_cost > 0:
+                    opportunities.append({
+                        'type': 'high_cost_query',
+                        'query_number': query_data['query_number'],
+                        'max_cost_usd': max_cost,
+                        'min_cost_usd': min_cost,
+                        'potential_savings_usd': max_cost - min_cost,
+                        'most_expensive_format': query_data['most_expensive_format'],
+                        'cheapest_format': query_data['cheapest_format'],
+                        'priority': 'high' if (max_cost - min_cost) > 0.01 else 'medium'
+                    })
+        
+        # Analyze warehouse size optimization
+        format_costs = self._calculate_cost_per_format(test_results)
+        for format_name, costs in format_costs.items():
+            if costs['total_cost_usd'] > 0:
+                # Check if warehouse size optimization could help
+                opportunities.append({
+                    'type': 'warehouse_optimization',
+                    'format': format_name,
+                    'current_cost_usd': costs['total_cost_usd'],
+                    'suggestion': 'Consider testing smaller warehouse sizes to reduce compute costs',
+                    'priority': 'medium'
+                })
+        
+        return opportunities
+    
+    def _analyze_cost_performance_ratio(self, test_results: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze cost-to-performance ratio"""
+        
+        cost_performance = {}
+        
+        for format_name, format_results in test_results.items():
+            successful_results = [r for r in format_results if r.get('status') == 'success']
+            
+            if successful_results:
+                total_cost = 0.0
+                total_time = 0.0
+                
+                for result in successful_results:
+                    warehouse_size = result.get('warehouse_size', 'X-Small')
+                    execution_time = result.get('average_time', 0)
+                    
+                    if execution_time > 0:
+                        cost_breakdown = self.cost_calculator.calculate_total_query_cost({
+                            'warehouse_size': warehouse_size,
+                            'execution_time_seconds': execution_time,
+                            'storage_bytes': result.get('storage_bytes', 0),
+                            's3_storage_gb': result.get('s3_storage_gb', 0),
+                            's3_storage_class': result.get('s3_storage_class', 'STANDARD'),
+                            's3_requests': result.get('s3_requests', {}),
+                            'glue_api_calls': result.get('glue_api_calls', {}),
+                            'glue_metadata_storage_tb': result.get('glue_metadata_storage_tb', 0.0),
+                            'data_transferred_gb': result.get('data_transferred_gb', 0),
+                            'same_region': result.get('same_region', True)
+                        }, format_name)
+                        
+                        total_cost += cost_breakdown['total_cost_usd']
+                        total_time += execution_time
+                
+                cost_performance[format_name] = {
+                    'total_cost_usd': total_cost,
+                    'total_time_seconds': total_time,
+                    'cost_per_second': total_cost / total_time if total_time > 0 else 0,
+                    'cost_per_query': total_cost / len(successful_results) if successful_results else 0,
+                    'avg_query_time': total_time / len(successful_results) if successful_results else 0
+                }
+        
+        return cost_performance
+    
+    def _calculate_total_costs(self, test_results: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate total costs across all formats"""
+        
+        format_costs = self._calculate_cost_per_format(test_results)
+        
+        total_cost = sum(c['total_cost_usd'] for c in format_costs.values())
+        total_credits = sum(c['total_credits'] for c in format_costs.values())
+        
+        cost_breakdown = {
+            'compute_cost_usd': sum(c['cost_breakdown'].get('compute_cost_usd', 0) for c in format_costs.values()),
+            'storage_cost_usd': sum(c['cost_breakdown'].get('storage_cost_usd', 0) for c in format_costs.values()),
+            's3_storage_cost_usd': sum(c['cost_breakdown'].get('s3_storage_cost_usd', 0) for c in format_costs.values()),
+            's3_request_cost_usd': sum(c['cost_breakdown'].get('s3_request_cost_usd', 0) for c in format_costs.values()),
+            'glue_cost_usd': sum(c['cost_breakdown'].get('glue_cost_usd', 0) for c in format_costs.values())
+        }
+        
+        return {
+            'total_cost_usd': total_cost,
+            'total_credits': total_credits,
+            'cost_breakdown': cost_breakdown,
+            'format_costs': format_costs
+        }

@@ -22,6 +22,15 @@ import seaborn as sns
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+# Import cost tracking modules
+try:
+    from benchmark.src.aws_cost_tracker import AWSCostTracker
+except ImportError:
+    try:
+        from src.aws_cost_tracker import AWSCostTracker
+    except ImportError:
+        AWSCostTracker = None
+
 # Import Snowflake connector
 try:
     from tests.snowflake_connector import SnowflakeConnector
@@ -321,6 +330,17 @@ class TPCDSPerformanceTester:
         self.start_time = None
         self.end_time = None
         
+        # Initialize AWS cost tracker
+        if AWSCostTracker:
+            try:
+                aws_config = self.config.get('aws', {})
+                self.aws_cost_tracker = AWSCostTracker(aws_config)
+            except Exception as e:
+                logger.warning(f"Failed to initialize AWS cost tracker: {e}")
+                self.aws_cost_tracker = None
+        else:
+            self.aws_cost_tracker = None
+        
         # Create results directory
         self.results_dir = Path("results")
         self.reports_dir = Path("results/reports")
@@ -543,6 +563,12 @@ class TPCDSPerformanceTester:
                 avg_bytes_scanned_mb = statistics.mean(bytes_scanned_list) if bytes_scanned_list else 0
                 total_bytes_scanned_mb = sum(bytes_scanned_list)
             
+            # Extract warehouse size from Snowflake metrics
+            warehouse_size = 'X-Small'  # Default
+            if snowflake_metrics_list and snowflake_metrics_list[0]:
+                warehouse_info = snowflake_metrics_list[0]
+                warehouse_size = warehouse_info.get('WAREHOUSE_SIZE', warehouse_info.get('warehouse_size', 'X-Small'))
+            
             # Determine status
             if errors:
                 if len(errors) >= test_runs:
@@ -552,21 +578,56 @@ class TPCDSPerformanceTester:
             else:
                 status = 'success'
             
-            return {
+            # Get AWS cost data for external formats
+            aws_cost_data = {}
+            if self.aws_cost_tracker and format_name in ['iceberg_glue', 'external', 'iceberg_sf']:
+                try:
+                    # Estimate S3 requests based on bytes scanned
+                    bytes_scanned = int(avg_bytes_scanned_mb * 1024 * 1024)
+                    s3_requests = self.aws_cost_tracker.estimate_query_s3_requests(format_name, bytes_scanned)
+                    
+                    # Get format-specific S3 usage
+                    s3_usage = self.aws_cost_tracker.get_format_s3_usage(format_name)
+                    
+                    aws_cost_data = {
+                        's3_storage_gb': s3_usage.get('total_size_gb', 0),
+                        's3_requests': s3_requests,
+                        's3_storage_class': 'STANDARD',
+                        'data_transferred_gb': avg_bytes_scanned_mb / 1024,  # Approximate
+                        'same_region': True  # Assume same region
+                    }
+                    
+                    if format_name == 'iceberg_glue':
+                        glue_calls = self.aws_cost_tracker.get_glue_api_calls()
+                        aws_cost_data['glue_api_calls'] = {
+                            'get': glue_calls.get('GetTable', 0) + glue_calls.get('GetDatabase', 0),
+                            'create_update': glue_calls.get('CreateTable', 0) + glue_calls.get('UpdateTable', 0)
+                        }
+                        aws_cost_data['glue_metadata_storage_tb'] = self.aws_cost_tracker.get_glue_metadata_storage()
+                except Exception as e:
+                    logger.warning(f"Failed to get AWS cost data: {e}")
+            
+            # Prepare result with warehouse size and execution time for cost tracking
+            result = {
                 'query_number': query_num,
                 'query_file': query_file.name,
                 'format': format_name,
                 'status': status,
                 'execution_times': local_execution_times,
+                'execution_time': avg_time,  # For metrics collector
                 'average_time': avg_time,
                 'min_time': min_time,
                 'max_time': max_time,
                 'std_time': std_time,
                 'average_rows': avg_rows,
+                'result_rows': int(avg_rows),  # For metrics collector
                 'errors': errors,
                 'error_count': len(errors),
                 'success_rate': (test_runs - len(errors)) / test_runs if test_runs > 0 else 0,
                 'timestamp': datetime.now().isoformat(),
+                'warehouse_size': warehouse_size,  # For cost calculation
+                # AWS cost data (for external formats)
+                **aws_cost_data,
                 # Snowflake native metrics
                 'snowflake_metrics': {
                     'execution_times_ms': [t * 1000 for t in snowflake_execution_times],  # Convert back to ms
@@ -577,9 +638,12 @@ class TPCDSPerformanceTester:
                     'avg_cache_hit_ratio': avg_cache_hit_ratio,
                     'avg_bytes_scanned_mb': avg_bytes_scanned_mb,
                     'total_bytes_scanned_mb': total_bytes_scanned_mb,
-                    'warehouse_info': snowflake_metrics_list[0] if snowflake_metrics_list else None
+                    'warehouse_info': snowflake_metrics_list[0] if snowflake_metrics_list else None,
+                    'warehouse_size': warehouse_size
                 }
             }
+            
+            return result
             
         except Exception as e:
             logger.error(f"Failed to execute query {query_num}: {e}")

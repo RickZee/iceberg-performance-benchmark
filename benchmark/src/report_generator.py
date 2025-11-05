@@ -74,7 +74,8 @@ class ReportGenerator:
             'test_summary': self._create_test_summary(test_results),
             'detailed_results': test_results,
             'performance_analysis': self._analyze_performance(test_results),
-            'recommendations': self._generate_recommendations(test_results)
+            'recommendations': self._generate_recommendations(test_results),
+            'cost_analysis': self._generate_cost_analysis(test_results)
         }
         
         report_file = self.reports_dir / f"tpcds_performance_report_{self.timestamp}.json"
@@ -109,6 +110,7 @@ class ReportGenerator:
                     'success_rate': result.get('success_rate', 0),
                     'total_runs': result.get('total_runs', 0),
                     'successful_runs': result.get('successful_runs', 0),
+                    'warehouse_size': result.get('warehouse_size', ''),
                     'timestamp': result.get('timestamp', '')
                 })
         
@@ -311,6 +313,22 @@ class ReportGenerator:
                 recommendations.append(f"Format {format_name} has low success rate ({format_data['success_rate']:.2%}). Review error logs.")
         
         return recommendations
+    
+    def _generate_cost_analysis(self, test_results: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate cost analysis from test results"""
+        
+        try:
+            # Import analytics engine to get cost analysis
+            from .analytics_engine import AnalyticsEngine
+            
+            analytics = AnalyticsEngine(self.config)
+            cost_analysis = analytics.analyze_costs(test_results)
+            
+            return cost_analysis
+            
+        except Exception as e:
+            logger.warning(f"Could not generate cost analysis: {e}")
+            return {}
     
     def _generate_charts(self, test_results: Dict[str, Any], 
                         metrics_collector=None) -> Dict[str, str]:
@@ -664,6 +682,10 @@ class ReportGenerator:
         # Add enhanced analytics sections
         if enhanced_analytics:
             html += self._add_enhanced_analytics_sections(enhanced_analytics)
+            
+            # Add cost analysis sections if available
+            if 'cost_analysis' in enhanced_analytics:
+                html += self._add_cost_analysis_sections(enhanced_analytics['cost_analysis'])
         
         # Add recommendations
         if recommendations:
@@ -846,6 +868,208 @@ class ReportGenerator:
                 html += "</ul>"
             
             html += """
+        </div>
+    </div>
+"""
+        
+        return html
+    
+    def _add_cost_analysis_sections(self, cost_analysis: Dict[str, Any]) -> str:
+        """Add cost analysis sections to HTML report"""
+        
+        html = ""
+        
+        # Cost per Format Section
+        if 'cost_per_format' in cost_analysis:
+            format_costs = cost_analysis['cost_per_format']
+            html += """
+    <div class="format-section">
+        <div class="format-header">
+            💰 Cost Analysis by Format
+        </div>
+        <div class="format-content">
+            <h3>Total Costs by Format</h3>
+            <table>
+                <tr>
+                    <th>Format</th>
+                    <th>Total Cost (USD)</th>
+                    <th>Total Credits</th>
+                    <th>Avg Cost per Query (USD)</th>
+                    <th>Compute Cost</th>
+                    <th>Storage Cost</th>
+                    <th>S3 Storage Cost</th>
+                    <th>S3 Request Cost</th>
+                    <th>Glue Cost</th>
+                </tr>
+"""
+            
+            for format_name, costs in format_costs.items():
+                breakdown = costs.get('cost_breakdown', {})
+                html += f"""
+                <tr>
+                    <td>{format_name.upper()}</td>
+                    <td>${costs.get('total_cost_usd', 0):.6f}</td>
+                    <td>{costs.get('total_credits', 0):.6f}</td>
+                    <td>${costs.get('avg_cost_per_query_usd', 0):.6f}</td>
+                    <td>${breakdown.get('compute_cost_usd', 0):.6f}</td>
+                    <td>${breakdown.get('storage_cost_usd', 0):.6f}</td>
+                    <td>${breakdown.get('s3_storage_cost_usd', 0):.6f}</td>
+                    <td>${breakdown.get('s3_request_cost_usd', 0):.6f}</td>
+                    <td>${breakdown.get('glue_cost_usd', 0):.6f}</td>
+                </tr>
+"""
+            
+            html += """
+            </table>
+        </div>
+    </div>
+"""
+        
+        # Cost Comparison Section
+        if 'cost_comparison' in cost_analysis:
+            cost_comp = cost_analysis['cost_comparison']
+            html += """
+    <div class="format-section">
+        <div class="format-header">
+            📊 Cost Comparison Across Formats
+        </div>
+        <div class="format-content">
+"""
+            
+            if 'cheapest_format' in cost_comp:
+                html += f"""
+            <h3>Cost Summary</h3>
+            <ul>
+                <li><strong>Cheapest Format:</strong> {cost_comp['cheapest_format'].upper()}</li>
+                <li><strong>Most Expensive Format:</strong> {cost_comp['most_expensive_format'].upper()}</li>
+"""
+                
+                if 'cost_savings_potential' in cost_comp:
+                    savings = cost_comp['cost_savings_potential']
+                    html += f"""
+                <li><strong>Potential Savings:</strong> ${savings.get('potential_savings_usd', 0):.2f} ({savings.get('potential_savings_percentage', 0):.1f}%) by using {cost_comp['cheapest_format'].upper()}</li>
+"""
+                html += "</ul>"
+            
+            html += """
+        </div>
+    </div>
+"""
+        
+        # Cost Performance Ratio Section
+        if 'cost_performance_ratio' in cost_analysis:
+            cost_perf = cost_analysis['cost_performance_ratio']
+            html += """
+    <div class="format-section">
+        <div class="format-header">
+            ⚖️ Cost-Performance Ratio Analysis
+        </div>
+        <div class="format-content">
+            <h3>Cost per Second of Execution</h3>
+            <table>
+                <tr>
+                    <th>Format</th>
+                    <th>Total Cost (USD)</th>
+                    <th>Total Time (s)</th>
+                    <th>Cost per Second</th>
+                    <th>Cost per Query</th>
+                    <th>Avg Query Time (s)</th>
+                </tr>
+"""
+            
+            for format_name, perf_data in cost_perf.items():
+                html += f"""
+                <tr>
+                    <td>{format_name.upper()}</td>
+                    <td>${perf_data.get('total_cost_usd', 0):.6f}</td>
+                    <td>{perf_data.get('total_time_seconds', 0):.2f}</td>
+                    <td>${perf_data.get('cost_per_second', 0):.6f}</td>
+                    <td>${perf_data.get('cost_per_query', 0):.6f}</td>
+                    <td>{perf_data.get('avg_query_time', 0):.2f}</td>
+                </tr>
+"""
+            
+            html += """
+            </table>
+        </div>
+    </div>
+"""
+        
+        # Cost Optimization Opportunities Section
+        if 'cost_optimization_opportunities' in cost_analysis:
+            opportunities = cost_analysis['cost_optimization_opportunities']
+            if opportunities:
+                html += """
+    <div class="format-section">
+        <div class="format-header">
+            🎯 Cost Optimization Opportunities
+        </div>
+        <div class="format-content">
+            <h3>Recommended Optimizations</h3>
+            <table>
+                <tr>
+                    <th>Type</th>
+                    <th>Details</th>
+                    <th>Potential Savings</th>
+                    <th>Priority</th>
+                </tr>
+"""
+                
+                for opp in opportunities[:10]:  # Top 10 opportunities
+                    savings = opp.get('potential_savings_usd', 0)
+                    html += f"""
+                <tr>
+                    <td>{opp.get('type', '').replace('_', ' ').title()}</td>
+                    <td>{opp.get('description', opp.get('suggestion', ''))}</td>
+                    <td>${savings:.4f}</td>
+                    <td>{opp.get('priority', 'medium').upper()}</td>
+                </tr>
+"""
+                
+                html += """
+            </table>
+        </div>
+    </div>
+"""
+        
+        # Total Costs Section
+        if 'total_costs' in cost_analysis:
+            total_costs = cost_analysis['total_costs']
+            html += f"""
+    <div class="format-section">
+        <div class="format-header">
+            💵 Total Cost Summary
+        </div>
+        <div class="format-content">
+            <h3>Overall Cost Breakdown</h3>
+            <ul>
+                <li><strong>Total Cost:</strong> ${total_costs.get('total_cost_usd', 0):.2f}</li>
+                <li><strong>Total Credits:</strong> {total_costs.get('total_credits', 0):.6f}</li>
+"""
+            
+            breakdown = total_costs.get('cost_breakdown', {})
+            if breakdown:
+                html += """
+                <li><strong>Cost Breakdown:</strong>
+                    <ul>
+"""
+                if breakdown.get('compute_cost_usd', 0) > 0:
+                    html += f"<li>Compute: ${breakdown['compute_cost_usd']:.2f}</li>"
+                if breakdown.get('storage_cost_usd', 0) > 0:
+                    html += f"<li>Storage: ${breakdown['storage_cost_usd']:.2f}</li>"
+                if breakdown.get('s3_storage_cost_usd', 0) > 0:
+                    html += f"<li>S3 Storage: ${breakdown['s3_storage_cost_usd']:.2f}</li>"
+                if breakdown.get('s3_request_cost_usd', 0) > 0:
+                    html += f"<li>S3 Requests: ${breakdown['s3_request_cost_usd']:.2f}</li>"
+                if breakdown.get('glue_cost_usd', 0) > 0:
+                    html += f"<li>Glue: ${breakdown['glue_cost_usd']:.2f}</li>"
+                html += """
+                    </ul>
+                </li>
+"""
+            
+            html += """
+            </ul>
         </div>
     </div>
 """

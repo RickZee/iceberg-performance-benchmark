@@ -1000,6 +1000,54 @@ The framework generates comprehensive reports:
 - **CSV Exports**: Spreadsheet-compatible data
 - **Statistical Analysis**: ANOVA, correlation analysis, trend detection
 
+## 💰 Cost Optimization
+
+The framework includes comprehensive cost measurement, analysis, and optimization capabilities:
+
+### Cost Components Tracked
+
+1. **Snowflake Compute Costs**: Warehouse credits based on execution time and warehouse size
+2. **Snowflake Storage Costs**: Internal storage costs for native format
+3. **AWS S3 Storage Costs**: Storage costs for external formats (Iceberg Glue, External)
+4. **AWS S3 Request Costs**: GET, PUT, LIST request costs
+5. **AWS Glue Catalog Costs**: Metadata storage and API call costs
+6. **Data Transfer Costs**: Cross-region data transfer costs
+
+### Cost Measurement Features
+
+- **Automatic Cost Calculation**: Costs calculated automatically for each query execution
+- **Cost Breakdown**: Detailed cost breakdown by component (compute, storage, S3, Glue)
+- **Cost Comparison**: Compare costs across formats to identify most cost-effective options
+- **Cost-Performance Analysis**: Analyze cost-to-performance ratios
+- **Cost Optimization Recommendations**: Automated recommendations for cost reduction
+
+### Cost Reports
+
+Cost analysis is included in all generated reports:
+- **Cost per Query**: Individual query costs across formats
+- **Cost per Format**: Total and average costs per format
+- **Cost Breakdown**: Component-level cost breakdowns
+- **Cost Trends**: Cost trends over time
+- **ROI Analysis**: Return on investment for optimizations
+
+### Optimization Tools
+
+The framework provides optimization tools:
+
+1. **Query Optimizer** (`benchmark/src/query_optimizer.py`): Format-specific query optimization recommendations
+2. **Warehouse Optimizer** (`benchmark/src/warehouse_optimizer.py`): Warehouse size optimization recommendations
+3. **Data Optimizer** (`benchmark/src/data_optimizer.py`): Clustering and partitioning recommendations
+
+### Configuration
+
+Configure cost tracking and optimization in `benchmark/config/perf_test_config.yaml`:
+- Snowflake credit pricing
+- AWS S3 and Glue pricing
+- Cost thresholds and alerts
+- Optimization settings
+
+For detailed cost optimization guidance, see the [Cost Optimization Guide](docs/cost-optimization-guide.md).
+
 ## 🗂️ TPC-DS Schema
 
 This project uses the TPC-DS benchmark schema with 24 tables:

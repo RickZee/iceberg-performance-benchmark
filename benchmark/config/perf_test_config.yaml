@@ -129,3 +129,61 @@ query_categories:
   complex_analytics:
     queries: [81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
     expected_complexity: "very_high"
+
+# Cost Pricing Configuration
+cost_pricing:
+  # Snowflake pricing (USD)
+  snowflake_credit_price_usd: 3.0  # Default: $3 per credit
+  snowflake_storage_price_per_tb_usd: 31.5  # Average: $23-40 per TB/month
+  
+  # AWS S3 pricing (us-east-1, USD)
+  aws_s3:
+    storage_standard_per_gb_usd: 0.023  # $0.023 per GB/month
+    storage_ia_per_gb_usd: 0.0125  # $0.0125 per GB/month (Infrequent Access)
+    storage_glacier_per_gb_usd: 0.004  # $0.004 per GB/month (Glacier)
+    request_get_per_1k_usd: 0.0004  # $0.0004 per 1,000 GET requests
+    request_put_per_1k_usd: 0.005  # $0.005 per 1,000 PUT requests
+    request_list_per_1k_usd: 0.0005  # $0.0005 per 1,000 LIST requests
+  
+  # AWS Glue pricing (USD)
+  aws_glue:
+    metadata_storage_per_tb_usd: 1.0  # $1 per TB/month
+    api_get_per_1k_usd: 0.0004  # $0.0004 per 1,000 GET operations
+    api_create_update_per_1k_usd: 0.001  # $0.001 per 1,000 CREATE/UPDATE operations
+  
+  # Data transfer pricing (USD)
+  data_transfer:
+    cross_region_per_gb_usd: 0.02  # $0.02 per GB (within same region: free)
+
+# Cost Optimization Settings
+cost_optimization:
+  enable_cost_tracking: true
+  cost_threshold_per_query: 0.1  # Alert if query cost exceeds this (USD)
+  cost_threshold_per_format: 10.0  # Alert if format cost exceeds this (USD)
+  cost_alerts_enabled: true
+  
+  # Warehouse optimization
+  warehouse_optimization:
+    enabled: true
+    test_multiple_sizes: false  # Test different warehouse sizes for cost optimization
+    recommended_size_analysis: true
+  
+  # Storage optimization
+  storage_optimization:
+    enabled: true
+    analyze_compression: true
+    recommend_lifecycle_policies: true
+  
+  # Query optimization
+  query_optimization:
+    enabled: true
+    analyze_expensive_queries: true
+    recommend_caching: true
+
+# Cost Reporting Settings
+cost_reporting:
+  include_cost_in_reports: true
+  generate_cost_breakdown: true
+  generate_cost_trends: true
+  generate_roi_analysis: true
+  cost_comparison_enabled: true
