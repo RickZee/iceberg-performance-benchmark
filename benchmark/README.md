@@ -33,7 +33,7 @@ This application provides automated performance testing, comprehensive metrics c
 - JSON reports for programmatic access
 - CSV exports for data analysis
 - PDF reports (optional)
-- Executive summaries and recommendations
+- Summaries and recommendations
 
 ### ⚙️ **Configuration Management**
 - YAML-based configuration
@@ -193,7 +193,7 @@ summary = metrics_collector.get_metrics_summary(format_name='native')
 - Format comparison tables
 - Query performance rankings
 - Success rate analysis
-- Executive summary
+- Summary
 
 ### JSON Reports
 - Complete test results

@@ -134,7 +134,7 @@ performance_thresholds:
 # Report Templates
 templates:
   executive_summary:
-    title: "Executive Summary"
+    title: "Summary"
     sections:
       - "test_overview"
       - "key_findings"

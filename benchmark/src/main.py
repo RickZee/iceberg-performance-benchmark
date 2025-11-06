@@ -888,7 +888,7 @@ class TPCDSPerformanceTester:
     </div>
     
     <div class="summary">
-        <h2>📊 Executive Summary</h2>
+        <h2>📊 Summary</h2>
         <div class="metric-grid">
             <div class="metric-card">
                 <div class="metric-value">{analytics['summary']['total_queries']}</div>
