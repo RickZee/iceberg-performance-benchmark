@@ -5,7 +5,7 @@ A comprehensive performance testing framework for comparing 4 different Snowflak
 1. **Native Snowflake Tables** - Standard Snowflake managed tables
 2. **Iceberg Snowflake-Managed** - Iceberg format with Snowflake catalog
 3. **Iceberg AWS Glue-Managed** - Iceberg format with external AWS Glue catalog
-4. **External Iceberg Tables** - External tables pointing to parquet data
+4. **External Tables** - External tables pointing to parquet data
 
 ## 🚀 Features
 
