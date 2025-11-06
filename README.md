@@ -996,6 +996,9 @@ The framework compares performance across 4 table formats:
 The framework generates comprehensive reports:
 
 - **HTML Reports**: Interactive charts and visualizations
+  - 📊 [View Example Report](docs/example-report.html) - Sample HTML report with performance metrics, cost analysis, and format comparisons
+  
+  ![Example Performance Report](docs/example-report.png)
 - **JSON Reports**: Machine-readable results for further analysis
 - **CSV Exports**: Spreadsheet-compatible data
 - **Statistical Analysis**: ANOVA, correlation analysis, trend detection

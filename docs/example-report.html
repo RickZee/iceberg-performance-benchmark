@@ -1,0 +1,1104 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TPC-DS Performance Test Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .header { background-color: #f0f0f0; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        .summary { margin: 20px 0; padding: 15px; background-color: #e8f4fd; border-radius: 5px; }
+        .analytics { margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; }
+        .format-section { margin: 20px 0; border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+        .query-result { margin: 10px 0; padding: 10px; background-color: #f9f9f9; border-radius: 3px; }
+        .success { border-left: 5px solid #4CAF50; }
+        .failed { border-left: 5px solid #f44336; }
+        .partial { border-left: 5px solid #ff9800; }
+        .error { border-left: 5px solid #f44336; }
+        table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 15px 0; }
+        .metric-card { background-color: white; padding: 15px; border-radius: 5px; border: 1px solid #ddd; text-align: center; }
+        .metric-value { font-size: 24px; font-weight: bold; color: #2c3e50; }
+        .metric-label { font-size: 14px; color: #7f8c8d; margin-top: 5px; }
+        .comparison-table { margin: 20px 0; }
+        .recommendations { background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107; }
+        .snowflake-metrics { background-color: #d1ecf1; padding: 10px; border-radius: 3px; margin: 5px 0; }
+        .cost-value { font-weight: bold; color: #e65100; font-size: 1.05em; }
+        .cost-header { background-color: #ff9800 !important; color: white !important; }
+        .cost-section { background-color: #fff3e0; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ff9800; }
+        h1, h2, h3 { color: #2c3e50; }
+        .highlight { background-color: #fff3cd; padding: 2px 4px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>TPC-DS Performance Test Report</h1>
+        <p><strong>Generated:</strong> 2025-11-04 23:51:25</p>
+        <p><strong>Total Duration:</strong> 121.58 seconds</p>
+        <p><strong>Test Mode:</strong> Test Mode (5 queries)</p>
+    </div>
+    
+    <div class="summary">
+        <h2>📊 Summary</h2>
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-value">20</div>
+                <div class="metric-label">Total Queries</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">20</div>
+                <div class="metric-label">Successful Queries</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">100.0%</div>
+                <div class="metric-label">Success Rate</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">0.43s</div>
+                <div class="metric-label">Avg Execution Time</div>
+            </div>
+        </div>
+        
+        <h3>Formats Tested</h3>
+        <ul>
+            <li><strong>Formats:</strong> native, iceberg_sf, iceberg_glue, external</li>
+            <li><strong>Total Queries:</strong> 20</li>
+            <li><strong>Test Duration:</strong> 121.58 seconds</li>
+        </ul>
+    </div>
+    
+    <div class="analytics">
+        <h2>📈 Performance Analytics</h2>
+        
+        <h3>Format Comparison</h3>
+        <div class="comparison-table">
+            <table>
+                <tr>
+                    <th>Format</th>
+                    <th>Queries</th>
+                    <th>Success Rate</th>
+                    <th>Local Avg (s)</th>
+                    <th>Local Min (s)</th>
+                    <th>Local Max (s)</th>
+                    <th>Local Std Dev</th>
+                    <th>Snowflake Avg (ms)</th>
+                    <th>Snowflake Min (ms)</th>
+                    <th>Snowflake Max (ms)</th>
+                    <th>Snowflake Std Dev</th>
+                    <th>Bytes Scanned (MB)</th>
+                    <th>Cache Hit Ratio</th>
+                    <th>Warehouse Size</th>
+                    <th>Total Credits</th>
+                    <th>Total Cost ($)</th>
+                    <th>Avg Cost/Query ($)</th>
+                </tr>
+
+                <tr>
+                    <td><strong>native</strong></td>
+                    <td>5</td>
+                    <td>100.0%</td>
+                    <td>0.25</td>
+                    <td>0.12</td>
+                    <td>0.52</td>
+                    <td>0.16</td>
+                    <td class="snowflake-metrics">134.0</td>
+                    <td class="snowflake-metrics">56.0</td>
+                    <td class="snowflake-metrics">285.0</td>
+                    <td class="snowflake-metrics">99.4</td>
+                    <td>0.00</td>
+                    <td>0.0%</td>
+                    <td>X-Small</td>
+                    <td>0.000353</td>
+                    <td><strong>$0.001059</strong></td>
+                    <td>$0.00021176</td>
+                </tr>
+
+                <tr>
+                    <td><strong>iceberg_sf</strong></td>
+                    <td>5</td>
+                    <td>100.0%</td>
+                    <td>0.35</td>
+                    <td>0.18</td>
+                    <td>0.52</td>
+                    <td>0.13</td>
+                    <td class="snowflake-metrics">352.2</td>
+                    <td class="snowflake-metrics">87.0</td>
+                    <td class="snowflake-metrics">779.0</td>
+                    <td class="snowflake-metrics">297.1</td>
+                    <td>0.00</td>
+                    <td>0.0%</td>
+                    <td>X-Small</td>
+                    <td>0.000493</td>
+                    <td><strong>$0.001491</strong></td>
+                    <td>$0.00029820</td>
+                </tr>
+
+                <tr>
+                    <td><strong>iceberg_glue</strong></td>
+                    <td>5</td>
+                    <td>100.0%</td>
+                    <td>0.47</td>
+                    <td>0.19</td>
+                    <td>1.23</td>
+                    <td>0.43</td>
+                    <td class="snowflake-metrics">560.0</td>
+                    <td class="snowflake-metrics">64.0</td>
+                    <td class="snowflake-metrics">1713.0</td>
+                    <td class="snowflake-metrics">663.8</td>
+                    <td>0.00</td>
+                    <td>0.0%</td>
+                    <td>X-Small</td>
+                    <td>0.000651</td>
+                    <td><strong>$0.006988</strong></td>
+                    <td>$0.00139763</td>
+                </tr>
+
+                <tr>
+                    <td><strong>external</strong></td>
+                    <td>5</td>
+                    <td>100.0%</td>
+                    <td>0.65</td>
+                    <td>0.28</td>
+                    <td>1.01</td>
+                    <td>0.31</td>
+                    <td class="snowflake-metrics">670.2</td>
+                    <td class="snowflake-metrics">137.0</td>
+                    <td class="snowflake-metrics">1372.0</td>
+                    <td class="snowflake-metrics">501.3</td>
+                    <td>0.00</td>
+                    <td>0.0%</td>
+                    <td>X-Small</td>
+                    <td>0.000897</td>
+                    <td><strong>$0.002737</strong></td>
+                    <td>$0.00054735</td>
+                </tr>
+
+            </table>
+        </div>
+        
+        <h3>💰 Cost Analysis Summary</h3>
+        <div class="comparison-table">
+            <table>
+                <tr>
+                    <th>Format</th>
+                    <th>Total Queries</th>
+                    <th>Warehouse Size</th>
+                    <th>Total Compute Credits</th>
+                    <th>Total Cost ($)</th>
+                    <th>Avg Cost per Query ($)</th>
+                    <th>Cost per Second ($)</th>
+                </tr>
+
+                <tr>
+                    <td><strong>native</strong></td>
+                    <td>5</td>
+                    <td>X-Small</td>
+                    <td>0.000353</td>
+                    <td><strong>$0.001059</strong></td>
+                    <td>$0.00021176</td>
+                    <td>$0.00083333</td>
+                </tr>
+
+                <tr>
+                    <td><strong>iceberg_sf</strong></td>
+                    <td>5</td>
+                    <td>X-Small</td>
+                    <td>0.000493</td>
+                    <td><strong>$0.001491</strong></td>
+                    <td>$0.00029820</td>
+                    <td>$0.00084038</td>
+                </tr>
+
+                <tr>
+                    <td><strong>iceberg_glue</strong></td>
+                    <td>5</td>
+                    <td>X-Small</td>
+                    <td>0.000651</td>
+                    <td><strong>$0.006988</strong></td>
+                    <td>$0.00139763</td>
+                    <td>$0.00298388</td>
+                </tr>
+
+                <tr>
+                    <td><strong>external</strong></td>
+                    <td>5</td>
+                    <td>X-Small</td>
+                    <td>0.000897</td>
+                    <td><strong>$0.002737</strong></td>
+                    <td>$0.00054735</td>
+                    <td>$0.00084726</td>
+                </tr>
+
+            </table>
+        </div>
+        
+        <h3>💰 Detailed Cost Breakdown by Format</h3>
+        <div class="comparison-table">
+            <table>
+                <tr>
+                    <th>Format</th>
+                    <th>Compute Cost ($)</th>
+                    <th>Storage Cost ($)</th>
+                    <th>S3 Storage Cost ($)</th>
+                    <th>S3 Request Cost ($)</th>
+                    <th>Glue Cost ($)</th>
+                    <th>Data Transfer Cost ($)</th>
+                    <th>Total Cost ($)</th>
+                </tr>
+
+                <tr>
+                    <td><strong>native</strong></td>
+                    <td>$0.001059</td>
+                    <td>$0.000000</td>
+                    <td>$0.000000</td>
+                    <td>$0.000000</td>
+                    <td>$0.000000</td>
+                    <td>$0.000000</td>
+                    <td class="cost-value"><strong>$0.001059</strong></td>
+                </tr>
+
+                <tr>
+                    <td><strong>iceberg_sf</strong></td>
+                    <td>$0.001478</td>
+                    <td>$0.000000</td>
+                    <td>$0.000000</td>
+                    <td>$0.000013</td>
+                    <td>$0.000000</td>
+                    <td>$0.000000</td>
+                    <td class="cost-value"><strong>$0.001491</strong></td>
+                </tr>
+
+                <tr>
+                    <td><strong>iceberg_glue</strong></td>
+                    <td>$0.001952</td>
+                    <td>$0.000000</td>
+                    <td>$0.000000</td>
+                    <td>$0.000033</td>
+                    <td>$0.005004</td>
+                    <td>$0.000000</td>
+                    <td class="cost-value"><strong>$0.006988</strong></td>
+                </tr>
+
+                <tr>
+                    <td><strong>external</strong></td>
+                    <td>$0.002692</td>
+                    <td>$0.000000</td>
+                    <td>$0.000000</td>
+                    <td>$0.000045</td>
+                    <td>$0.000000</td>
+                    <td>$0.000000</td>
+                    <td class="cost-value"><strong>$0.002737</strong></td>
+                </tr>
+
+            </table>
+        </div>
+        
+        <h3>Table Row Count Statistics</h3>
+        <div class="comparison-table">
+            <table>
+                <tr>
+                    <th>Format</th>
+                    <th>Total Rows</th>
+                    <th>Avg Rows/Table</th>
+                    <th>Min Rows</th>
+                    <th>Max Rows</th>
+                    <th>Tables with Data</th>
+                    <th>Total Tables</th>
+                </tr>
+
+                <tr>
+                    <td><strong>native</strong></td>
+                    <td>24408</td>
+                    <td>1017.0</td>
+                    <td>1</td>
+                    <td>19208</td>
+                    <td>24</td>
+                    <td>24</td>
+                </tr>
+
+                <tr>
+                    <td><strong>iceberg_sf</strong></td>
+                    <td>24408</td>
+                    <td>1017.0</td>
+                    <td>1</td>
+                    <td>19208</td>
+                    <td>24</td>
+                    <td>24</td>
+                </tr>
+
+                <tr>
+                    <td><strong>iceberg_glue</strong></td>
+                    <td>24408</td>
+                    <td>1017.0</td>
+                    <td>1</td>
+                    <td>19208</td>
+                    <td>24</td>
+                    <td>24</td>
+                </tr>
+
+                <tr>
+                    <td><strong>external</strong></td>
+                    <td>24408</td>
+                    <td>1017.0</td>
+                    <td>1</td>
+                    <td>19208</td>
+                    <td>24</td>
+                    <td>24</td>
+                </tr>
+
+            </table>
+        </div>
+        
+        <h3>Detailed Table Row Counts by Schema</h3>
+        <div class="comparison-table">
+            <table>
+                <tr>
+                    <th>Table Name</th>
+                    <th>native</th>
+                    <th>iceberg_sf</th>
+                    <th>iceberg_glue</th>
+                    <th>external</th>
+                </tr>
+                <tr>
+                    <td><strong>call_center</strong></td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td><strong>catalog_page</strong></td>
+                    <td>117</td>
+                    <td>117</td>
+                    <td>117</td>
+                    <td>117</td>
+                </tr>
+                <tr>
+                    <td><strong>catalog_returns</strong></td>
+                    <td>14</td>
+                    <td>14</td>
+                    <td>14</td>
+                    <td>14</td>
+                </tr>
+                <tr>
+                    <td><strong>catalog_sales</strong></td>
+                    <td>144</td>
+                    <td>144</td>
+                    <td>144</td>
+                    <td>144</td>
+                </tr>
+                <tr>
+                    <td><strong>customer</strong></td>
+                    <td>1,000</td>
+                    <td>1,000</td>
+                    <td>1,000</td>
+                    <td>1,000</td>
+                </tr>
+                <tr>
+                    <td><strong>customer_address</strong></td>
+                    <td>500</td>
+                    <td>500</td>
+                    <td>500</td>
+                    <td>500</td>
+                </tr>
+                <tr>
+                    <td><strong>customer_demographics</strong></td>
+                    <td>19,208</td>
+                    <td>19,208</td>
+                    <td>19,208</td>
+                    <td>19,208</td>
+                </tr>
+                <tr>
+                    <td><strong>date_dim</strong></td>
+                    <td>730</td>
+                    <td>730</td>
+                    <td>730</td>
+                    <td>730</td>
+                </tr>
+                <tr>
+                    <td><strong>household_demographics</strong></td>
+                    <td>72</td>
+                    <td>72</td>
+                    <td>72</td>
+                    <td>72</td>
+                </tr>
+                <tr>
+                    <td><strong>income_band</strong></td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td><strong>inventory</strong></td>
+                    <td>1,174</td>
+                    <td>1,174</td>
+                    <td>1,174</td>
+                    <td>1,174</td>
+                </tr>
+                <tr>
+                    <td><strong>item</strong></td>
+                    <td>180</td>
+                    <td>180</td>
+                    <td>180</td>
+                    <td>180</td>
+                </tr>
+                <tr>
+                    <td><strong>promotion</strong></td>
+                    <td>3</td>
+                    <td>3</td>
+                    <td>3</td>
+                    <td>3</td>
+                </tr>
+                <tr>
+                    <td><strong>reason</strong></td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td><strong>ship_mode</strong></td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td><strong>store</strong></td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td><strong>store_returns</strong></td>
+                    <td>28</td>
+                    <td>28</td>
+                    <td>28</td>
+                    <td>28</td>
+                </tr>
+                <tr>
+                    <td><strong>store_sales</strong></td>
+                    <td>288</td>
+                    <td>288</td>
+                    <td>288</td>
+                    <td>288</td>
+                </tr>
+                <tr>
+                    <td><strong>time_dim</strong></td>
+                    <td>864</td>
+                    <td>864</td>
+                    <td>864</td>
+                    <td>864</td>
+                </tr>
+                <tr>
+                    <td><strong>warehouse</strong></td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td><strong>web_page</strong></td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td><strong>web_returns</strong></td>
+                    <td>7</td>
+                    <td>7</td>
+                    <td>7</td>
+                    <td>7</td>
+                </tr>
+                <tr>
+                    <td><strong>web_sales</strong></td>
+                    <td>71</td>
+                    <td>71</td>
+                    <td>71</td>
+                    <td>71</td>
+                </tr>
+                <tr>
+                    <td><strong>web_site</strong></td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                </tr>
+
+            </table>
+        </div>
+        
+        <h3>Snowflake Native Metrics Summary</h3>
+        <div class="metric-grid">
+
+            <div class="metric-card">
+                <div class="metric-value">429.1ms</div>
+                <div class="metric-label">Avg Snowflake Time</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">20</div>
+                <div class="metric-label">Queries with Metrics</div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="format-section">
+        <h2>📊 Format: native</h2>
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-value">5</div>
+                <div class="metric-label">Queries Tested</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">100.0%</div>
+                <div class="metric-label">Success Rate</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">0.25s</div>
+                <div class="metric-label">Avg Local Time</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">134.0ms</div>
+                <div class="metric-label">Avg Snowflake Time</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">24408</div>
+                <div class="metric-label">Total Table Rows</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">24/24</div>
+                <div class="metric-label">Tables with Data</div>
+            </div>
+        </div>
+        
+        <table>
+            <tr>
+                <th>Query</th>
+                <th>Status</th>
+                <th>Local Avg (s)</th>
+                <th>Snowflake Avg (ms)</th>
+                <th>Min Time (s)</th>
+                <th>Max Time (s)</th>
+                <th>Std Dev</th>
+                <th>Rows Produced</th>
+                <th>Bytes Scanned (MB)</th>
+                <th>Success Rate</th>
+                <th class="cost-header">Warehouse</th>
+                <th class="cost-header">Credits</th>
+                <th class="cost-header">Cost ($)</th>
+            </tr>
+
+            <tr>
+                <td>q01.sql</td>
+                <td class="success">success</td>
+                <td>0.52</td>
+                <td class="snowflake-metrics">186.0</td>
+                <td>0.22</td>
+                <td>0.92</td>
+                <td>0.37</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000143</td>
+                <td class="cost-value">$0.00043027</td>
+            </tr>
+
+            <tr>
+                <td>q02.sql</td>
+                <td class="success">success</td>
+                <td>0.17</td>
+                <td class="snowflake-metrics">56.0</td>
+                <td>0.09</td>
+                <td>0.28</td>
+                <td>0.09</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000048</td>
+                <td class="cost-value">$0.00014498</td>
+            </tr>
+
+            <tr>
+                <td>q03.sql</td>
+                <td class="success">success</td>
+                <td>0.12</td>
+                <td class="snowflake-metrics">78.0</td>
+                <td>0.10</td>
+                <td>0.14</td>
+                <td>0.02</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000034</td>
+                <td class="cost-value">$0.00010160</td>
+            </tr>
+
+            <tr>
+                <td>q04.sql</td>
+                <td class="success">success</td>
+                <td>0.17</td>
+                <td class="snowflake-metrics">65.0</td>
+                <td>0.09</td>
+                <td>0.23</td>
+                <td>0.07</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000046</td>
+                <td class="cost-value">$0.00013947</td>
+            </tr>
+
+            <tr>
+                <td>q05.sql</td>
+                <td class="success">success</td>
+                <td>0.29</td>
+                <td class="snowflake-metrics">285.0</td>
+                <td>0.18</td>
+                <td>0.44</td>
+                <td>0.14</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000081</td>
+                <td class="cost-value">$0.00024246</td>
+            </tr>
+
+        </table>
+    </div>
+
+    <div class="format-section">
+        <h2>📊 Format: iceberg_sf</h2>
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-value">5</div>
+                <div class="metric-label">Queries Tested</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">100.0%</div>
+                <div class="metric-label">Success Rate</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">0.35s</div>
+                <div class="metric-label">Avg Local Time</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">352.2ms</div>
+                <div class="metric-label">Avg Snowflake Time</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">24408</div>
+                <div class="metric-label">Total Table Rows</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">24/24</div>
+                <div class="metric-label">Tables with Data</div>
+            </div>
+        </div>
+        
+        <table>
+            <tr>
+                <th>Query</th>
+                <th>Status</th>
+                <th>Local Avg (s)</th>
+                <th>Snowflake Avg (ms)</th>
+                <th>Min Time (s)</th>
+                <th>Max Time (s)</th>
+                <th>Std Dev</th>
+                <th>Rows Produced</th>
+                <th>Bytes Scanned (MB)</th>
+                <th>Success Rate</th>
+                <th class="cost-header">Warehouse</th>
+                <th class="cost-header">Credits</th>
+                <th class="cost-header">Cost ($)</th>
+            </tr>
+
+            <tr>
+                <td>q01.sql</td>
+                <td class="success">success</td>
+                <td>0.27</td>
+                <td class="snowflake-metrics">249.0</td>
+                <td>0.19</td>
+                <td>0.34</td>
+                <td>0.08</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000076</td>
+                <td class="cost-value">$0.00023076</td>
+            </tr>
+
+            <tr>
+                <td>q02.sql</td>
+                <td class="success">success</td>
+                <td>0.43</td>
+                <td class="snowflake-metrics">533.0</td>
+                <td>0.22</td>
+                <td>0.60</td>
+                <td>0.19</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000118</td>
+                <td class="cost-value">$0.00035684</td>
+            </tr>
+
+            <tr>
+                <td>q03.sql</td>
+                <td class="success">success</td>
+                <td>0.18</td>
+                <td class="snowflake-metrics">87.0</td>
+                <td>0.12</td>
+                <td>0.26</td>
+                <td>0.07</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000050</td>
+                <td class="cost-value">$0.00015395</td>
+            </tr>
+
+            <tr>
+                <td>q04.sql</td>
+                <td class="success">success</td>
+                <td>0.37</td>
+                <td class="snowflake-metrics">113.0</td>
+                <td>0.14</td>
+                <td>0.59</td>
+                <td>0.23</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000103</td>
+                <td class="cost-value">$0.00031113</td>
+            </tr>
+
+            <tr>
+                <td>q05.sql</td>
+                <td class="success">success</td>
+                <td>0.52</td>
+                <td class="snowflake-metrics">779.0</td>
+                <td>0.34</td>
+                <td>0.83</td>
+                <td>0.27</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000145</td>
+                <td class="cost-value">$0.00043829</td>
+            </tr>
+
+        </table>
+    </div>
+
+    <div class="format-section">
+        <h2>📊 Format: iceberg_glue</h2>
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-value">5</div>
+                <div class="metric-label">Queries Tested</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">100.0%</div>
+                <div class="metric-label">Success Rate</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">0.47s</div>
+                <div class="metric-label">Avg Local Time</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">560.0ms</div>
+                <div class="metric-label">Avg Snowflake Time</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">24408</div>
+                <div class="metric-label">Total Table Rows</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">24/24</div>
+                <div class="metric-label">Tables with Data</div>
+            </div>
+        </div>
+        
+        <table>
+            <tr>
+                <th>Query</th>
+                <th>Status</th>
+                <th>Local Avg (s)</th>
+                <th>Snowflake Avg (ms)</th>
+                <th>Min Time (s)</th>
+                <th>Max Time (s)</th>
+                <th>Std Dev</th>
+                <th>Rows Produced</th>
+                <th>Bytes Scanned (MB)</th>
+                <th>Success Rate</th>
+                <th class="cost-header">Warehouse</th>
+                <th class="cost-header">Credits</th>
+                <th class="cost-header">Cost ($)</th>
+            </tr>
+
+            <tr>
+                <td>q01.sql</td>
+                <td class="success">success</td>
+                <td>0.25</td>
+                <td class="snowflake-metrics">64.0</td>
+                <td>0.10</td>
+                <td>0.37</td>
+                <td>0.14</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000069</td>
+                <td class="cost-value">$0.00121496</td>
+            </tr>
+
+            <tr>
+                <td>q02.sql</td>
+                <td class="success">success</td>
+                <td>0.19</td>
+                <td class="snowflake-metrics">171.0</td>
+                <td>0.18</td>
+                <td>0.21</td>
+                <td>0.02</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000053</td>
+                <td class="cost-value">$0.00116599</td>
+            </tr>
+
+            <tr>
+                <td>q03.sql</td>
+                <td class="success">success</td>
+                <td>0.26</td>
+                <td class="snowflake-metrics">423.0</td>
+                <td>0.12</td>
+                <td>0.50</td>
+                <td>0.21</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000071</td>
+                <td class="cost-value">$0.00122006</td>
+            </tr>
+
+            <tr>
+                <td>q04.sql</td>
+                <td class="success">success</td>
+                <td>1.23</td>
+                <td class="snowflake-metrics">1713.0</td>
+                <td>0.18</td>
+                <td>1.76</td>
+                <td>0.90</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000340</td>
+                <td class="cost-value">$0.00202876</td>
+            </tr>
+
+            <tr>
+                <td>q05.sql</td>
+                <td class="success">success</td>
+                <td>0.42</td>
+                <td class="snowflake-metrics">429.0</td>
+                <td>0.33</td>
+                <td>0.48</td>
+                <td>0.08</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000117</td>
+                <td class="cost-value">$0.00135836</td>
+            </tr>
+
+        </table>
+    </div>
+
+    <div class="format-section">
+        <h2>📊 Format: external</h2>
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-value">5</div>
+                <div class="metric-label">Queries Tested</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">100.0%</div>
+                <div class="metric-label">Success Rate</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">0.65s</div>
+                <div class="metric-label">Avg Local Time</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">670.2ms</div>
+                <div class="metric-label">Avg Snowflake Time</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">24408</div>
+                <div class="metric-label">Total Table Rows</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">24/24</div>
+                <div class="metric-label">Tables with Data</div>
+            </div>
+        </div>
+        
+        <table>
+            <tr>
+                <th>Query</th>
+                <th>Status</th>
+                <th>Local Avg (s)</th>
+                <th>Snowflake Avg (ms)</th>
+                <th>Min Time (s)</th>
+                <th>Max Time (s)</th>
+                <th>Std Dev</th>
+                <th>Rows Produced</th>
+                <th>Bytes Scanned (MB)</th>
+                <th>Success Rate</th>
+                <th class="cost-header">Warehouse</th>
+                <th class="cost-header">Credits</th>
+                <th class="cost-header">Cost ($)</th>
+            </tr>
+
+            <tr>
+                <td>q01.sql</td>
+                <td class="success">success</td>
+                <td>0.77</td>
+                <td class="snowflake-metrics">869.0</td>
+                <td>0.40</td>
+                <td>1.44</td>
+                <td>0.58</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000213</td>
+                <td class="cost-value">$0.00064935</td>
+            </tr>
+
+            <tr>
+                <td>q02.sql</td>
+                <td class="success">success</td>
+                <td>0.37</td>
+                <td class="snowflake-metrics">240.0</td>
+                <td>0.35</td>
+                <td>0.42</td>
+                <td>0.04</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000104</td>
+                <td class="cost-value">$0.00032017</td>
+            </tr>
+
+            <tr>
+                <td>q03.sql</td>
+                <td class="success">success</td>
+                <td>0.28</td>
+                <td class="snowflake-metrics">137.0</td>
+                <td>0.19</td>
+                <td>0.35</td>
+                <td>0.08</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000078</td>
+                <td class="cost-value">$0.00024414</td>
+            </tr>
+
+            <tr>
+                <td>q04.sql</td>
+                <td class="success">success</td>
+                <td>1.01</td>
+                <td class="snowflake-metrics">1372.0</td>
+                <td>0.77</td>
+                <td>1.47</td>
+                <td>0.40</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000282</td>
+                <td class="cost-value">$0.00085360</td>
+            </tr>
+
+            <tr>
+                <td>q05.sql</td>
+                <td class="success">success</td>
+                <td>0.79</td>
+                <td class="snowflake-metrics">733.0</td>
+                <td>0.70</td>
+                <td>0.89</td>
+                <td>0.09</td>
+                <td>0</td>
+                <td>0.00</td>
+                <td>100.00%</td>
+                <td>X-Small</td>
+                <td>0.000220</td>
+                <td class="cost-value">$0.00066948</td>
+            </tr>
+
+        </table>
+    </div>
+
+    <div class="recommendations">
+        <h2>💡 Recommendations</h2>
+        <ul>
+            <li>Significant performance difference detected: external is 2.5x slower than native</li>
+
+        </ul>
+    </div>
+
+    <div class="analytics">
+        <h2>🔍 Additional Insights</h2>
+        <ul>
+            <li><strong>Performance Variance:</strong> Standard deviation across queries shows consistency in execution times</li>
+            <li><strong>Timing Methodology:</strong>
+                <ul>
+                    <li><strong>Local Timing:</strong> End-to-end time including network latency, connection overhead, data transfer, and Python processing</li>
+                    <li><strong>Snowflake Timing:</strong> Pure query execution time on Snowflake server (from QUERY_HISTORY)</li>
+                    <li><strong>Why Local < Snowflake:</strong> This is unusual - typically local timing is higher due to network overhead. May indicate query result caching or very fast network.</li>
+                </ul>
+            </li>
+            <li><strong>Table Row Counts:</strong> Shows actual data volume across all TPC-DS tables in each schema format</li>
+            <li><strong>Cache Performance:</strong> Cache hit ratios indicate query result caching effectiveness</li>
+            <li><strong>Data Scanning:</strong> Bytes scanned metrics help identify resource-intensive queries</li>
+        </ul>
+        
+        <h3>Test Configuration</h3>
+        <ul>
+            <li><strong>Warmup Runs:</strong> 1</li>
+            <li><strong>Test Runs:</strong> 3</li>
+            <li><strong>Max Execution Time:</strong> 300s</li>
+            <li><strong>Success Rate Threshold:</strong> 95.0%</li>
+        </ul>
+    </div>
+    
+    <div style="margin-top: 40px; padding: 20px; background-color: #f8f9fa; border-radius: 5px; text-align: center; color: #6c757d;">
+        <p><strong>Report Generated by TPC-DS Performance Test Framework</strong></p>
+        <p>For detailed data, see the accompanying JSON and CSV files in the results directory.</p>
+    </div>
+</body>
+</html>
