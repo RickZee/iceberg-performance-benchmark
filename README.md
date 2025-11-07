@@ -223,6 +223,8 @@ See [Setup Guide](setup/README.md) for detailed cleanup procedures.
 ### Additional Resources
 
 - **[Glue Integration Journey](docs/glue-integration-journey.md)** - Troubleshooting guide for Glue-managed Iceberg tables
+- **[Glue Integration Fix](docs/glue-iceberg-snowflake-integration-fix.md)** - Technical fix documentation for Glue-managed Iceberg table integration issues
+- **[Troubleshooting Journey](docs/troubleshooting-journey.md)** - Complete troubleshooting journey narrative covering all table formats
 - **[Cost Optimization Guide](docs/cost-optimization-guide.md)** - Cost analysis, optimization strategies, and recommendations
 
 ## Configuration

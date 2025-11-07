@@ -521,11 +521,10 @@ After updating the trust policy, test access from Snowflake:
 SELECT * FROM AWS_GLUE_CATALOG.iceberg_performance_test.call_center LIMIT 1;
 ```
 
-**📚 For detailed troubleshooting**, see `docs/glue-integration-journey.md` which includes:
-- Complete cross-account workflow
-- Troubleshooting cross-account issues
-- Multiple AWS account scenarios
-- Common error solutions
+**For detailed troubleshooting**, see:
+- `docs/glue-integration-journey.md` - Complete cross-account workflow, troubleshooting cross-account issues, multiple AWS account scenarios, common error solutions
+- `docs/glue-iceberg-snowflake-integration-fix.md` - Technical fix documentation for Glue-managed Iceberg table integration issues
+- `docs/troubleshooting-journey.md` - Complete troubleshooting journey narrative covering all table formats
 
 ## Monitoring and Maintenance
 
@@ -578,6 +577,8 @@ SELECT * FROM AWS_GLUE_CATALOG.iceberg_performance_test.call_center LIMIT 1;
 - Verify IAM permissions for Snowflake access
 - Monitor S3 access patterns and costs
 - See `docs/glue-integration-journey.md` for detailed troubleshooting guide
+- See `docs/glue-iceberg-snowflake-integration-fix.md` for technical fix documentation
+- See `docs/troubleshooting-journey.md` for complete troubleshooting journey narrative
 
 ## Cleanup
 
@@ -605,3 +606,5 @@ For issues or questions:
 3. Verify IAM permissions
 4. Check Snowflake connectivity
 5. See `docs/glue-integration-journey.md` for detailed troubleshooting
+6. See `docs/glue-iceberg-snowflake-integration-fix.md` for technical fixes
+7. See `docs/troubleshooting-journey.md` for troubleshooting narrative

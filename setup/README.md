@@ -477,6 +477,8 @@ python setup/glue/scripts/create/create_glue_tables.py --verbose
 
 - **Infrastructure Issues:** [`infrastructure/README.md`](infrastructure/README.md)
 - **General Troubleshooting:** [`../docs/glue-integration-journey.md`](../docs/glue-integration-journey.md)
+- **Technical Fixes:** [`../docs/glue-iceberg-snowflake-integration-fix.md`](../docs/glue-iceberg-snowflake-integration-fix.md) - Detailed technical fixes for Glue integration issues
+- **Troubleshooting Journey:** [`../docs/troubleshooting-journey.md`](../docs/troubleshooting-journey.md) - Complete troubleshooting journey narrative
 
 ## Verification
 
