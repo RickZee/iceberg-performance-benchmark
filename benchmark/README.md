@@ -2,44 +2,70 @@
 
 A comprehensive performance testing suite for TPC-DS queries across all Snowflake table formats (Native, Iceberg Snowflake-managed, Iceberg AWS Glue-managed, and External tables).
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [TPC-DS Query Categories](#tpc-ds-query-categories)
+- [Directory Structure](#directory-structure)
+- [Quick Start](#quick-start)
+- [Configuration Reference](#configuration-reference)
+- [Usage Examples](#usage-examples)
+- [Report Types](#report-types)
+- [Performance Metrics](#performance-metrics)
+- [Analytics Features](#analytics-features)
+- [Command Line Interface](#command-line-interface)
+- [Troubleshooting](#troubleshooting)
+
 ## Overview
 
 This application provides automated performance testing, comprehensive metrics collection, advanced analytics, and detailed reporting for TPC-DS benchmark queries across different Snowflake table formats. It's designed to help evaluate and compare the performance characteristics of various data storage formats.
 
 ## Features
 
-### 🚀 **Comprehensive Testing**
+### Comprehensive Testing
 - Automated execution of all 99 TPC-DS queries
 - Support for all 4 Snowflake table formats
 - Configurable test modes (quick, standard, comprehensive, stress)
 - Query validation and safety checks
 
-### 📊 **Advanced Metrics Collection**
+### Advanced Metrics Collection
 - Real-time performance monitoring
 - System resource usage tracking
 - SQLite-based metrics storage
 - Historical data analysis
 - Export capabilities (JSON, CSV)
 
-### 📈 **Analytics & Insights**
+### Analytics & Insights
 - Statistical analysis (ANOVA, t-tests, correlation analysis)
 - Performance trend analysis
 - Anomaly detection
 - Format comparison and ranking
 - Benchmark establishment
 
-### 📋 **Comprehensive Reporting**
+### Comprehensive Reporting
 - HTML reports with interactive charts
 - JSON reports for programmatic access
 - CSV exports for data analysis
 - PDF reports (optional)
 - Summaries and recommendations
 
-### ⚙️ **Configuration Management**
+### Configuration Management
 - YAML-based configuration
 - Multiple test modes
 - Performance thresholds
 - Customizable reporting options
+
+## TPC-DS Query Categories
+
+The benchmark includes 99 TPC-DS queries organized into 4 categories:
+
+- **Reporting Queries (1-20)**: Standard business reporting and dashboard queries with simple aggregations, groupings, and basic filters. Focus on fast execution for real-time dashboards.
+- **Ad-hoc Queries (21-40)**: Business analysis and exploration queries with complex filtering, multiple joins, and analytical functions. Balanced performance for analytical workloads.
+- **Iterative Queries (41-60)**: Multi-step analytical processes with complex business logic, subqueries, and window functions. Optimized for analytical processing.
+- **Data Mining Queries (61-99)**: Advanced analytics and statistical analysis with complex joins, statistical functions, and data mining operations. Optimized for large-scale analytical processing.
+
+Query files are located in the `queries/` directory, organized by format (native, iceberg_sf, iceberg_glue, external). Each format has 99 query files (q01.sql through q99.sql).
 
 ## Directory Structure
 
@@ -104,27 +130,6 @@ python benchmark/src/main.py
 python benchmark/src/main.py --query-range 1 5
 ```
 
-## Configuration Options
-
-### Test Settings
-- `max_queries_per_format`: Maximum queries to test per format
-- `max_execution_time`: Maximum execution time per query (seconds)
-- `retry_attempts`: Number of retry attempts for failed queries
-- `warmup_runs`: Number of warmup runs before timing
-- `test_runs`: Number of actual test runs for averaging
-
-### Performance Thresholds
-- `max_execution_time`: Maximum acceptable execution time
-- `memory_limit_mb`: Memory limit per query
-- `error_rate_threshold`: Maximum acceptable error rate
-- `success_rate_threshold`: Minimum acceptable success rate
-
-### Reporting Options
-- `generate_html`: Generate HTML reports
-- `generate_pdf`: Generate PDF reports
-- `generate_csv`: Generate CSV data files
-- `generate_json`: Generate JSON reports
-- `include_charts`: Include performance charts
 
 ## Usage Examples
 
@@ -291,49 +296,73 @@ python benchmark/src/main.py --test-mode
 
 ## Configuration Reference
 
+Edit `benchmark/config/perf_test_config.yaml` to customize test behavior.
+
 ### Test Modes
 
-#### Quick Test
-- 5 queries per format
-- 1 test run
-- No warmup runs
-- Fast execution
+- **Quick Test**: 5 queries per format, 1 test run, no warmup runs
+- **Standard Test**: 20 queries per format, 2 test runs, 1 warmup run
+- **Comprehensive Test**: 99 queries per format, 3 test runs, 1 warmup run
+- **Stress Test**: 99 queries per format, 5 test runs, 2 warmup runs, maximum load
 
-#### Standard Test
-- 20 queries per format
-- 2 test runs
-- 1 warmup run
-- Balanced testing
+### Test Settings
 
-#### Comprehensive Test
-- 99 queries per format
-- 3 test runs
-- 1 warmup run
-- Complete analysis
-
-#### Stress Test
-- 99 queries per format
-- 5 test runs
-- 2 warmup runs
-- No delays
-- Maximum load
+- `max_queries_per_format`: Maximum queries to test per format
+- `max_execution_time`: Maximum execution time per query (seconds, default: 300)
+- `retry_attempts`: Number of retry attempts for failed queries
+- `warmup_runs`: Number of warmup runs before timing
+- `test_runs`: Number of actual test runs for averaging
 
 ### Performance Thresholds
 
-- **Max Execution Time**: 300 seconds
-- **Memory Limit**: 1024 MB
-- **Error Rate Threshold**: 5%
-- **Success Rate Threshold**: 95%
+- `max_execution_time`: Maximum acceptable execution time (300 seconds)
+- `memory_limit_mb`: Memory limit per query (1024 MB)
+- `error_rate_threshold`: Maximum acceptable error rate (5%)
+- `success_rate_threshold`: Minimum acceptable success rate (95%)
 
-### Query Categories
+### Reporting Options
 
-The application categorizes TPC-DS queries into groups for analysis:
+- `generate_html`: Generate HTML reports with interactive charts
+- `generate_pdf`: Generate PDF reports (optional)
+- `generate_csv`: Generate CSV data files
+- `generate_json`: Generate JSON reports for programmatic access
+- `include_charts`: Include performance charts in reports
 
-- **Reporting Queries** (1-20): Medium complexity
-- **Ad-hoc Queries** (21-40): High complexity
-- **Iterative Queries** (41-60): Medium complexity
-- **Data Analysis** (61-80): High complexity
-- **Complex Analytics** (81-99): Very high complexity
+### Query Complexity Levels
+
+Queries are also categorized by technical complexity:
+
+- **Low Complexity (1-25)**: Simple SELECT statements, basic WHERE clauses, single table operations, simple aggregations
+- **Medium Complexity (26-50)**: Multiple table joins, complex WHERE clauses, subqueries, window functions
+- **High Complexity (51-75)**: Multiple subqueries, complex analytical functions, advanced window functions, statistical operations
+- **Very High Complexity (76-99)**: Complex business logic, advanced analytical functions, data mining operations, machine learning features
+
+### Format-Specific Optimizations
+
+#### Native Snowflake Tables
+
+- **Clustering**: Optimized for clustering keys
+- **Search Optimization**: Enabled for better query performance
+- **Materialized Views**: Can be used for complex aggregations
+
+#### Iceberg Snowflake-Managed
+
+- **Partition Pruning**: Optimized for date-based partitioning
+- **File Format**: Parquet with Snappy compression
+- **Metadata**: Snowflake-managed metadata for better performance
+
+#### Iceberg AWS Glue-Managed
+
+- **External Catalog**: AWS Glue catalog integration
+- **Cross-Engine**: Compatible with multiple query engines
+- **S3 Optimization**: Optimized for S3 storage patterns
+
+#### External Tables
+
+- **Read-Only**: Optimized for analytical workloads
+- **Parquet Format**: Efficient columnar storage
+- **S3 Integration**: Direct S3 access patterns
+
 
 ## Troubleshooting
 
@@ -365,23 +394,3 @@ Application logs are stored in `benchmark/logs/`:
 - `tpcds_perf_test.log`: Main application log
 - Query execution details are logged to the main log file
 - Metrics collection details are included in the main log
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## License
-
-This project is part of the event-based-processing/iceberg repository.
-
-## Support
-
-For issues and questions:
-1. Check the troubleshooting section
-2. Review log files
-3. Create an issue in the repository
-4. Contact the development team

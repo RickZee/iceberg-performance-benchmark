@@ -1,8 +1,31 @@
 # AWS Infrastructure Setup for Snowflake Iceberg Performance Testing
 
-> **📚 Main Documentation**: See the [main README](../README.md) for complete project overview and setup instructions.
+> **Main Documentation**: See the [main README](../README.md) for complete project overview and setup instructions.
 
 This directory contains Terraform configuration to provision AWS infrastructure required for the Snowflake Iceberg performance testing project.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [What Terraform Creates](#what-terraform-creates)
+  - [S3 Bucket Configuration](#s3-bucket-configuration)
+  - [AWS Glue Catalog](#aws-glue-catalog)
+  - [IAM Configuration](#iam-configuration)
+  - [Cross-Account Setup](#cross-account-setup)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Configuration Files](#configuration-files)
+- [Architecture](#architecture)
+- [Created Resources](#created-resources)
+- [Table Schemas](#table-schemas)
+- [Configuration Options](#configuration-options)
+- [Integration with Snowflake](#integration-with-snowflake)
+- [Cross-Account Configuration](#cross-account-configuration)
+- [Monitoring and Maintenance](#monitoring-and-maintenance)
+- [Troubleshooting](#troubleshooting)
+- [Cleanup](#cleanup)
+- [Next Steps](#next-steps)
+- [Support](#support)
 
 ## Overview
 
@@ -13,7 +36,7 @@ The Terraform configuration creates the following AWS resources:
 - **IAM Role**: Role with trust policy for Snowflake integration
 - **IAM Policies**: Permissions for S3 and Glue access
 
-## 🏗️ What Terraform Creates
+## What Terraform Creates
 
 ### S3 Bucket Configuration
 
@@ -39,7 +62,7 @@ The Terraform configuration creates the following AWS resources:
 ### IAM Configuration
 
 - **Trust Policy**: Allows Snowflake to assume the role for data access
-  - **⚠️ Note**: After creating Snowflake integrations, you must update the trust policy with Snowflake's IAM user ARN and external ID (see Cross-Account Setup below)
+  - **Note**: After creating Snowflake integrations, you must update the trust policy with Snowflake's IAM user ARN and external ID (see Cross-Account Setup below)
 - **S3 Permissions**: Full read/write access to the Iceberg data bucket
 - **Glue Permissions**: Database and table management capabilities
 - **KMS Permissions**: Encryption key access (if customer-managed keys used)
@@ -200,7 +223,7 @@ terraform apply
 terraform output
 ```
 
-**⚠️ Important Next Step**: After creating Snowflake integrations, you must update the IAM role trust policy. See [Cross-Account Setup](#cross-account-setup) section above.
+**Important Next Step**: After creating Snowflake integrations, you must update the IAM role trust policy. See [Cross-Account Setup](#cross-account-setup) section above.
 
 ## Configuration Files
 
