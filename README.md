@@ -17,6 +17,7 @@ A comprehensive performance testing framework for comparing 4 different Snowflak
 - [Understanding Results](#understanding-results)
 - [Cost Optimization](#cost-optimization)
 - [TPC-DS Schema](#tpc-ds-schema)
+- [Verification](#verification)
 - [Troubleshooting](#troubleshooting)
 - [Cleanup](#cleanup)
 - [Documentation](#documentation)
@@ -164,6 +165,22 @@ See [Cost Optimization Guide](docs/cost-optimization-guide.md) for detailed guid
 ## TPC-DS Schema
 
 24 tables (17 dimension, 7 fact) created in all 4 formats. See [`setup/schemas/`](setup/schemas/) for DDL scripts.
+
+## Verification
+
+**Query Row Counts for All Tables:**
+
+To check row counts across all schemas and tables:
+
+```bash
+set -a && source .env && set +a && python setup/data/query_all_tables.py
+```
+
+This will display row counts for all tables in all 4 formats (native, iceberg_sf, iceberg_glue, external). You can also output to CSV:
+
+```bash
+set -a && source .env && set +a && python setup/data/query_all_tables.py --output csv
+```
 
 ## Troubleshooting
 
